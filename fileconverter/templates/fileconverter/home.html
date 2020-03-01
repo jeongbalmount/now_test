@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>움짤 생성기</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+        integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="app" class="container">
+        <div class="panel panel-default">
+            <div class="panel-heading"><strong>Make GIF</strong> </div>
+            <div class="panel-body">
+                <h3>움짤 생성하기</h3>
+
+                <div class="container empty" :class="{ ' hovered' : isHoverTrue }" @dragleave.prevent="onDragLeave"
+                    @dragover.prevent="onDragOver" @drop.prevent="onDrop">
+                    <div v-if="isHoverTrue == false">
+                        <h3 class="divCenter">이곳에 파일을 끌어다 놓으세요</h3>
+                    </div>
+                </div>
+                <div class="uploadFile">
+                    <label for="image_uploads" class="btn btn-secondary btn-lg btn-block">직접 파일 찾기</label>
+                    <input class="file" type="file" id="image_uploads" name="image_uploads" multiple
+                        @change="add_files">
+                    <!-- accept=".flv, .avi, .wmv, .mov, .mp4" -->
+                </div>
+                <input class="form-control" type="text" placeholder="동영상 URL입력">
+                <br>
+                <ol class="fileNames" style="list-style: none; padding-left:0px;">
+                    <li v-for="(fileName, index) in fileNames">
+                        <div class="p-3 mb-2 bg-light text-dark">
+                            <span>[[ fileName ]]</span>
+                            <!-- <span class="removeBtn" v-on:click="remove_todo(index)">&#x00D7</span> -->
+                            <button type="button" class="close" aria-label="Close">
+                                <span aria-hidden="true" v-on:click="remove_todo(index)">&times;</span>
+                            </button>
+                        </div>
+                    </li>
+
+                </ol>
+                <p>총 파일 크기: [[ returnedFileSize(fileSize) ]]</p>
+                <div class="buttons">
+                    <button type="submit" class="btn btn-success">Upload</button>
+                    <!-- <button v-on:click="remove_all()">모두 삭제</button> -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src='https://unpkg.com/vue/dist/vue.min.js'></script>
+    <script>
+        var input = document.querySelector('input');
+        input.style.opacity = 0;
+
+        var returnedFileSize =
+            function (number) {
+                if (number < 1024) {
+                    return number + 'bytes';
+                } else if (number >= 1024 && number < 1048576) {
+                    return (number / 1024).toFixed(1) + 'KB';
+                } else if (number >= 1048576) {
+                    return (number / 1048576).toFixed(1) + 'MB';
+                }
+            };
+
+        var vm = new Vue({
+            delimiters: ['[[', ']]'],
+            el: '#app',
+            data: {
+                limitSize: 52428800,
+                isHoverTrue: false,
+                file: '',
+                fileSize: 0,
+                fileList: [],
+                fileNames: [],
+                fileTypes: [
+                    'video/avi',
+                    'video/flv',
+                    'video/wmv',
+                    'video/mov',
+                    'video/mp4'
+                ],
+            },
+            methods: {
+                add_files(event) {
+                    console.log(event.target.files);
+                    files = event.target.files;
+
+                    this.addFileSize(files);
+
+                    for (file of files) {
+                        console.log(typeof (file.type));
+                        console.log(file.type);
+                        if (!this.validFileType(file.type)) {
+                            alert("변환할 수 있는 파일이 아닙니다");
+                            this.minusFileSize(files);
+                            return;
+                        }
+                    }
+
+                    var fileCountLimit = this.fileList.length + files.length;
+
+                    if (fileCountLimit > 2) {
+                        alert("파일 최대 2개까지 선택가능");
+                        this.minusFileSize(files);
+                        return;
+                    } else if (this.fileSize > this.limitSize) {
+                        alert("파일 총 크기 제한 50MB");
+                        // for(file of files){
+                        //     this.fileSize = this.fileSize - file.size;
+                        // }
+                        console.log(this.fileSize);
+                        console.log(typeof (files));
+                        this.minusFileSize(files);
+                        return;
+                    }
+
+                    for (file of files) {
+                        this.fileList.push(file);
+                        this.fileNames.push(file.name);
+                    }
+                },
+
+                returnedFileSize,
+
+                // remove_all() {
+                //     console.log(this.fileList.length);
+
+                //     this.fileList.splice(0, this.fileList.length);
+                //     this.fileNames.splice(0, this.fileNames.length);
+                //     this.fileSize = 0;
+                // },
+                remove_todo: function (index) {
+                    console.log(index);
+                    console.log(this.fileList[index].size);
+                    this.fileSize -= this.fileList[index].size;
+                    this.fileList.splice(index, 1);
+                    this.fileNames.splice(index, 1);
+                },
+                onDrop: function (event) {
+                    console.log("ondrop");
+                    // event.stopPropagation();
+                    // event.preventDefault();
+
+                    console.log('dragEnter');
+                    this.className += ' hovered';
+
+                    var files = event.dataTransfer.files;
+
+                    this.addFileSize(files);
+                    console.log(this.fileSize);
+
+                    for (file of files) {
+                        console.log(typeof (file.type));
+                        console.log(file.type);
+                        if (!this.validFileType(file.type)) {
+                            alert("변환할 수 있는 파일이 아닙니다");
+                            this.minusFileSize(files);
+                            return;
+                        }
+                    }
+
+                    var fileCountLimit = this.fileList.length + files.length;
+                    if (fileCountLimit > 2) {
+                        alert("파일 최대 2개까지 선택가능");
+                        this.minusFileSize(files);
+                        this.isHoverTrue = false;
+                        return;
+                    } else if (this.fileSize > this.limitSize) {
+                        alert("파일 총 크기 제한 50MB");
+
+                        console.log(this.fileSize);
+                        console.log(typeof (files));
+                        this.minusFileSize(files);
+                        this.isHoverTrue = false;
+                        return;
+                    }
+
+                    for (file of files) {
+                        this.fileList.push(file);
+                        this.fileNames.push(file.name);
+                    }
+                    this.isHoverTrue = false;
+                },
+
+                onDragOver: function (event) {
+                    // event.stopPropagation();
+                    // event.preventDefault();
+
+                    console.log('dragOver');
+                    this.isHoverTrue = true;
+                },
+
+                onDragLeave: function (event) {
+                    // event.stopPropagation();
+                    // event.preventDefault();
+
+                    console.log('dragLeave');
+                    this.isHoverTrue = false;
+                },
+
+                validFileType: function (fileType) {
+                    console.log(this.fileTypes.includes(fileType));
+                    return this.fileTypes.includes(fileType);
+                },
+
+                addFileSize: function (files) {
+                    for (file of files) {
+                        this.fileSize += file.size;
+                        console.log(this.fileSize);
+                    }
+                },
+
+                minusFileSize: function (files) {
+                    console.log(file.size);
+                    console.log(this.fileSize);
+
+                    for (file of files) {
+                        this.fileSize = this.fileSize - file.size;
+                    }
+
+                    console.log(this.fileSize);
+                }
+            },
+        });
+
+    </script>
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+        integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+        integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+        integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+        crossorigin="anonymous"></script>
+
+</body>
+
+</html>

@@ -1,3 +1,7 @@
 from django.contrib import admin
+from .models import UploadModel
 
-# Register your models here.
+
+@admin.register(UploadModel)
+class UploadFileAdmin(admin.ModelAdmin):
+    list_display = ('uploadedFile', )
