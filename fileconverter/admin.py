@@ -4,4 +4,4 @@ from .models import UploadModel
 
 @admin.register(UploadModel)
 class UploadFileAdmin(admin.ModelAdmin):
-    list_display = ('uploadedFile', )
+    list_display = ('uploadedFile', 'uploadByURL')
