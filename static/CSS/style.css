@@ -1,0 +1,14 @@
+.empty {
+    height: 300px;
+    border: 3px salmon solid;
+    background-color: #eee;
+}
+
+.hovered {
+    background: #f4f4f4;
+    border-style: dashed;
+}
+.divCenter {
+    line-height: 300px;
+    text-align: center;
+}
