@@ -4,7 +4,7 @@ import filetype
 
 
 class UploadFileForm(forms.ModelForm):
-    max_size = 10485760
+    max_size = 52428800
 
     class Meta:
         model = UploadModel

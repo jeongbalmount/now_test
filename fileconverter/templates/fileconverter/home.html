@@ -15,7 +15,7 @@
         <div class="panel panel-default">
             <div class="panel-heading"><strong>Make GIF</strong> </div>
             <div class="panel-body">
-                <h3>움짤 생성하기</h3>
+                <h3>움짤 생성기</h3>
 
                 <div class="container empty" :class="{ ' hovered' : isHoverTrue }" @dragleave.prevent="onDragLeave"
                     @dragover.prevent="onDragOver" @drop.prevent="onDrop">
@@ -32,23 +32,24 @@
                 <input class="form-control" type="text" placeholder="동영상 URL입력">
                 <br>
                 <ol class="fileNames" style="list-style: none; padding-left:0px;">
-                    <li v-for="(fileName, index) in fileNames">
-                        <div v-if="fileUploadedCheckList[index] == true" class="p-3 mb-2 bg-success text-dark">
-                            <span>[[ fileName ]]</span>
-                        </div>
-                        <div v-else class="p-3 mb-2 bg-light text-dark">
-                            <span>[[ fileName ]]</span>
-                            <!-- <span class="removeBtn" v-on:click="remove_todo(index)">&#x00D7</span> -->
+                    <li v-for="(namecheck, index) in fileNamesWithCheck">
+                        <div v-if="namecheck.fileName != 'default'" class="p-3 mb-2 bg-light text-dark">
+                            <span>[[ namecheck.fileName ]]</span>
                             <button type="button" class="close" aria-label="Close">
-                                <span aria-hidden="true" v-on:click="remove_todo(index)">&times;</span>
+                                <span v-if="namecheck.fileUploaded">upload완료</span>
+                                <span v-else aria-hidden="true" v-on:click="remove_todo(index)">&times;</span>
                             </button>
                         </div>
                     </li>
-
+                    <li v-for="(size, index) in fileSizeCheck">
+                        <p v-if="size.sizeCheck">총 파일 크기: [[ returnedFileSize(fileSize) ]]</p>
+                    </li>
                 </ol>
-                <p>총 파일 크기: [[ returnedFileSize(fileSize) ]]</p>
-                <div class="buttons">
-                    <button type="submit" class="btn btn-success" v-on:click="uploadFiles()">Upload</button>
+                <!-- <p>총 파일 크기: [[ returnedFileSize(fileSize) ]]</p> -->
+                <div v-for="(converted, index) in forConvertButton" class="buttons">
+                    <button v-if="converted.checkConverted" 
+                    type="submit" class="btn btn-success" >움짤 만들기</button>
+                    <button v-else type="submit" class="btn btn-success" v-on:click="uploadFiles()">업로드</button>
                     <!-- <button v-on:click="remove_all()">모두 삭제</button> -->
                 </div>
             </div>
@@ -64,16 +65,16 @@
         var input = document.querySelector('input');
         input.style.opacity = 0;
 
-        var returnedFileSize =
-            function (number) {
-                if (number < 1024) {
-                    return number + 'bytes';
-                } else if (number >= 1024 && number < 1048576) {
-                    return (number / 1024).toFixed(1) + 'KB';
-                } else if (number >= 1048576) {
-                    return (number / 1048576).toFixed(1) + 'MB';
-                }
-            };
+        // var returnedFileSize =
+        //     function (number) {
+        //         if (number < 1024) {
+        //             return number + 'bytes';
+        //         } else if (number >= 1024 && number < 1048576) {
+        //             return (number / 1024).toFixed(1) + 'KB';
+        //         } else if (number >= 1048576) {
+        //             return (number / 1048576).toFixed(1) + 'MB';
+        //         }
+        //     };
 
         var vm = new Vue({
             delimiters: ['[[', ']]'],
@@ -85,8 +86,17 @@
                 fileSize: 0,
                 fileList: [],
                 // fileURLList: [],
-                fileNames: [],
-                fileUploadedCheckList: [],
+                fileNamesWithCheck: [],
+                forConvertButton: [
+                    {
+                        checkConverted: false,
+                    }
+                ],
+                fileSizeCheck: [
+                    {
+                        sizeCheck: false
+                    }
+                ],
                 fileTypes: [
                     'video/avi',
                     'video/flv',
@@ -97,6 +107,10 @@
 
             },
             methods: {
+                // forConvertButtonFunc: function(){
+                //     return this.forConvertButton.isConvert;
+                // },
+
                 uploadFiles: function () {
                     console.log("uploadFiles");
                     if (this.fileList.length == 0) {
@@ -124,27 +138,32 @@
                     //         console.log(vm.fileURLList[i]);
                     //     })
                     // }
-                  
+
                     var form = new FormData();
-                    for(var i=0;i<2;i++){
-                        form.append('uploadedFiles',vm.fileList[i]); 
+                    for (var i = 0; i < 2; i++) {
+                        form.append('uploadedFiles', vm.fileList[i]);
                         // form.append('fileNames', vm.fileNames[i]);
                     }
                     console.log(vm.fileList[0]);
                     axios.post('/convert/upload/', form)
                         .then(function (res) {
                             console.log("POST RES", res);
-                            for(var i=0; i <vm.fileUploadedCheckList.length; i++){
-                                vm.fileUploadedCheckList[i] = true;
-                                console.log(vm.fileUploadedCheckList[i]);
+                            for (var i = 0; i < 2; i++) {
+                                vm.fileNamesWithCheck[i].fileUploaded = true;
+                                console.log(vm.fileNamesWithCheck[i].fileUploaded);
                             }
+                            vm.forConvertButton[0].checkConverted = true;
                             console.log(res.data.one);
                             console.log(res.data.two);
                         })
                         .catch(function (err) {
-                        console.log("GET ERR", err);
+                            console.log("GET ERR", err);
                         })
                 },
+
+                // fileUploadCheck: function (index) {
+                //     return this.fileUploadedCheckList[index];
+                // },
 
                 add_files: function (event) {
                     console.log(event.target.files);
@@ -181,12 +200,23 @@
 
                     for (file of files) {
                         this.fileList.push(file);
-                        this.fileNames.push(file.name);
-                        this.fileUploadedCheckList.push(false);
+                        this.fileNamesWithCheck.push({
+                            fileName: file.name,
+                            fileUploaded: false,
+                        });
+                        this.fileSizeCheck[0].sizeCheck = true;
                     }
                 },
 
-                returnedFileSize,
+                returnedFileSize: function (number) {
+                    if (number < 1024) {
+                        return number + 'bytes';
+                    } else if (number >= 1024 && number < 1048576) {
+                        return (number / 1024).toFixed(1) + 'KB';
+                    } else if (number >= 1048576) {
+                        return (number / 1048576).toFixed(1) + 'MB';
+                    }
+                },
 
                 // remove_all() {
                 //     console.log(this.fileList.length);
@@ -200,8 +230,7 @@
                     console.log(this.fileList[index].size);
                     this.fileSize -= this.fileList[index].size;
                     this.fileList.splice(index, 1);
-                    this.fileNames.splice(index, 1);
-                    this.fileUploadedCheckList.splice(index, 1);
+                    this.fileNamesWithCheck.splice(index, 1);
                 },
                 onDrop: function (event) {
                     console.log("ondrop");
@@ -244,9 +273,13 @@
 
                     for (file of files) {
                         this.fileList.push(file);
-                        this.fileNames.push(file.name);
+                        this.fileNamesWithCheck.push({
+                            fileName: file.name,
+                            fileUploaded: false,
+                        });
                         this.fileUploadedCheckList.push(false);
                     }
+                    this.fileSizeCheck[0].sizeCheck = true;
                     this.isHoverTrue = false;
                 },
 

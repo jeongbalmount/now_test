@@ -6,7 +6,7 @@ from requests import get
 
 
 class UploadModel(models.Model):
-    uploadedFiles = models.FileField(blank=False, upload_to='uploadedFiles/%Y/%m/%d/')
+    uploadedFiles = models.FileField(blank=False,)
     # uploadFileSecond = models.FileField(blank=True)
     # fileNames = models.CharField(blank=False, max_length=200)
     # secondFileName = models.CharField(blank=True, max_length=200)

@@ -33,6 +33,8 @@ def FileUpload(request):
                 print(dictNames)
             form.save()
             return JsonResponse(dictNames, status=201)
+        else:
+            return JsonResponse(data=form.errors, status=400)
 
 
 
