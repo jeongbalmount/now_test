@@ -8,28 +8,38 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
         integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
     <link rel="stylesheet" href="{% static 'CSS/style.css' %}" media="screen">
+    <script src='https://unpkg.com/vue/dist/vue.min.js'></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+        integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+        integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+        integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+        crossorigin="anonymous"></script>
 </head>
 
 <body>
-    <div id="app" class="container">
+    <div id="app" class="container hidden-div" v-cloak>
         <div class="panel panel-default">
             <div class="panel-heading"><strong>Make GIF</strong> </div>
             <div class="panel-body">
                 <h3>움짤 생성기</h3>
-
                 <div class="container empty" :class="{ ' hovered' : isHoverTrue }" @dragleave.prevent="onDragLeave"
                     @dragover.prevent="onDragOver" @drop.prevent="onDrop">
                     <div v-if="isHoverTrue == false">
                         <h3 class="divCenter">이곳에 파일을 끌어다 놓으세요</h3>
                     </div>
                 </div>
-                <div class="uploadFile">
+                <div class="uploadFile" v-cloak>
                     <label for="image_uploads" class="btn btn-secondary btn-lg btn-block">직접 파일 찾기</label>
                     <input class="file" type="file" id="image_uploads" name="image_uploads" multiple
                         @change="add_files">
                     <!-- accept=".flv, .avi, .wmv, .mov, .mp4" -->
                 </div>
-                <input class="form-control" type="text" placeholder="동영상 URL입력">
+                <input class="form-control" type="text" v-model="inputURL" placeholder="동영상 URL입력">
                 <br>
                 <ol class="fileNames" style="list-style: none; padding-left:0px;">
                     <li v-for="(namecheck, index) in fileNamesWithCheck">
@@ -41,14 +51,14 @@
                             </button>
                         </div>
                     </li>
+                    <!-- v-if="namecheck.fileName != 'default'" -->
                     <li v-for="(size, index) in fileSizeCheck">
-                        <p v-if="size.sizeCheck">총 파일 크기: [[ returnedFileSize(fileSize) ]]</p>
+                        <p v-if="size.fileSize">총 파일 크기: [[ returnedFileSize(fileSize) ]]</p>
                     </li>
                 </ol>
                 <!-- <p>총 파일 크기: [[ returnedFileSize(fileSize) ]]</p> -->
                 <div v-for="(converted, index) in forConvertButton" class="buttons">
-                    <button v-if="converted.checkConverted" 
-                    type="submit" class="btn btn-success" >움짤 만들기</button>
+                    <button v-if="converted.checkConverted" type="submit" class="btn btn-success">움짤 만들기</button>
                     <button v-else type="submit" class="btn btn-success" v-on:click="uploadFiles()">업로드</button>
                     <!-- <button v-on:click="remove_all()">모두 삭제</button> -->
                 </div>
@@ -57,24 +67,13 @@
     </div>
 
 
-    <script src='https://unpkg.com/vue/dist/vue.min.js'></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!-- <script src='https://unpkg.com/vue/dist/vue.min.js'></script> -->
+    <!-- <script src="https://unpkg.com/axios/dist/axios.min.js"></script> -->
     <script>
         axios.defaults.xsrfCookieName = 'csrftoken';
         axios.defaults.xsrfHeaderName = 'x-CSRFToken';
         var input = document.querySelector('input');
         input.style.opacity = 0;
-
-        // var returnedFileSize =
-        //     function (number) {
-        //         if (number < 1024) {
-        //             return number + 'bytes';
-        //         } else if (number >= 1024 && number < 1048576) {
-        //             return (number / 1024).toFixed(1) + 'KB';
-        //         } else if (number >= 1048576) {
-        //             return (number / 1048576).toFixed(1) + 'MB';
-        //         }
-        //     };
 
         var vm = new Vue({
             delimiters: ['[[', ']]'],
@@ -85,18 +84,19 @@
                 file: '',
                 fileSize: 0,
                 fileList: [],
-                // fileURLList: [],
-                fileNamesWithCheck: [],
+                fileNamesWithCheck: [
+                ],
                 forConvertButton: [
                     {
                         checkConverted: false,
                     }
                 ],
                 fileSizeCheck: [
-                    {
-                        sizeCheck: false
-                    }
+                    // {
+                    //     sizeCheck: false
+                    // }
                 ],
+                inputURL: '',
                 fileTypes: [
                     'video/avi',
                     'video/flv',
@@ -104,20 +104,58 @@
                     'video/mov',
                     'video/mp4'
                 ],
+                fileEndTypes: [
+                    'avi',
+                    'flv',
+                    'wmv',
+                    'mov',
+                    'mp4',
+                    'webm',
+                ]
 
             },
             methods: {
-                // forConvertButtonFunc: function(){
-                //     return this.forConvertButton.isConvert;
-                // },
+                verifyURL: function (checkURL) {
+                    console.log("verifyURL");
+                    var url = checkURL;
+                    var pattern = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/;
+                    var fileExtend = this.verifyExtends(url);
+                    console.log(fileExtend);
+                    if (pattern.test(url) && fileExtend) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                },
+
+                verifyExtends: function(url) {
+                    var fileExtends = url.split(/\#|\?/)[0].split('.').pop().trim();
+                    console.log(fileExtends)
+                    if (this.fileEndTypes.includes(fileExtends)){
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                },
 
                 uploadFiles: function () {
-                    console.log("uploadFiles");
-                    if (this.fileList.length == 0) {
+                    var vm = this;
+                    var verifiedURL;
+
+                    if (vm.inputURL !== '') {
+                        verifiedURL = this.verifyURL(this.inputURL);
+                        if (verifiedURL === false) {
+                            alert("Url형식이 아닙니다");
+                            return;
+                        }
+                    }
+
+                    if (vm.fileList.length === 0 && verifiedURL !== true) {
                         alert("파일을 추가해 주세요")
                         return;
                     }
-                    var vm = this;
+
 
                     // 파일을 base64형태로 바꾸는 작업 
                     // for (var i = 0; i < vm.fileList.length; i++) {
@@ -140,31 +178,46 @@
                     // }
 
                     var form = new FormData();
-                    for (var i = 0; i < 2; i++) {
-                        form.append('uploadedFiles', vm.fileList[i]);
-                        // form.append('fileNames', vm.fileNames[i]);
-                    }
-                    console.log(vm.fileList[0]);
-                    axios.post('/convert/upload/', form)
+                    if (vm.fileList.length !== 0) {
+                        for (var i = 0; i < vm.fileList.length; i++) {
+                            form.append('uploadedFiles', vm.fileList[i]);
+                            console.log(vm.fileList[i]);
+                            // form.append('fileNames', vm.fileNames[i]);
+                        }
+                        axios.post('/convert/upload/', form)
                         .then(function (res) {
                             console.log("POST RES", res);
-                            for (var i = 0; i < 2; i++) {
+                            for (var i = 0; i < vm.fileList.length; i++) {
                                 vm.fileNamesWithCheck[i].fileUploaded = true;
                                 console.log(vm.fileNamesWithCheck[i].fileUploaded);
                             }
                             vm.forConvertButton[0].checkConverted = true;
-                            console.log(res.data.one);
-                            console.log(res.data.two);
+                            vm.fileSizeCheck[0].fileSize = false;
                         })
                         .catch(function (err) {
                             console.log("GET ERR", err);
                         })
+                    } else {
+                        var sendURL = {uploadURL: this.inputURL};
+                        console.log(vm.inputURL);
+
+                        axios.post('/convert/urlupload/', sendURL)
+                        .then(function (res) {
+                            console.log("POST RES", res);
+                            // push하는 이유는 vue v-if를 조정시키기 위해서이다.
+                            vm.fileNamesWithCheck.push({
+                            fileName: 'notDefault',
+                            fileUploaded: true,
+                        });
+                        vm.fileSizeCheck.push({
+                            fileSize: false
+                        });
+                        })
+                        .catch(function (err) {
+                            console.log("GET ERR", err);
+                        })
+                    }
                 },
-
-                // fileUploadCheck: function (index) {
-                //     return this.fileUploadedCheckList[index];
-                // },
-
                 add_files: function (event) {
                     console.log(event.target.files);
                     files = event.target.files;
@@ -204,8 +257,10 @@
                             fileName: file.name,
                             fileUploaded: false,
                         });
-                        this.fileSizeCheck[0].sizeCheck = true;
                     }
+                    this.fileSizeCheck.push({
+                        fileSize: true
+                    });
                 },
 
                 returnedFileSize: function (number) {
@@ -279,7 +334,9 @@
                         });
                         this.fileUploadedCheckList.push(false);
                     }
-                    this.fileSizeCheck[0].sizeCheck = true;
+                    this.fileSizeCheck.push({
+                        fileSize: true
+                    });
                     this.isHoverTrue = false;
                 },
 
@@ -325,7 +382,7 @@
         });
 
     </script>
-    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+    <!-- <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
         integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
         crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
@@ -333,7 +390,7 @@
         crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
         integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
-        crossorigin="anonymous"></script>
+        crossorigin="anonymous"></script> -->
 
 </body>
 

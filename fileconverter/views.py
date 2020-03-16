@@ -9,7 +9,7 @@ from django.views.generic import TemplateView
 from django.views.generic.edit import BaseCreateView
 
 from .models import UploadModel
-from .forms import UploadFileForm
+from .forms import UploadFileForm, UploadURLForm
 
 
 class FileConvert(TemplateView):
@@ -35,6 +35,23 @@ def FileUpload(request):
             return JsonResponse(dictNames, status=201)
         else:
             return JsonResponse(data=form.errors, status=400)
+
+
+def URLupload(request):
+    if request.method == 'POST':
+        form = UploadURLForm(request.POST, request.FILES)
+        if form.is_valid():
+            urlFile = request.FILES.get('fileFromURL')
+            print(urlFile)
+            urlFileName = urlFile.name
+            dictData = {'urlFileName': urlFileName}
+            form.save()
+            return JsonResponse(data=dictData, status=201)
+
+        else:
+            return JsonResponse(data=form.errors, status=400)
+
+
 
 
 

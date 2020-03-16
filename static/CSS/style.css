@@ -12,3 +12,5 @@
     line-height: 300px;
     text-align: center;
 }
+ 
+[v-cloak] {display: none;}
