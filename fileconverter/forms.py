@@ -58,31 +58,18 @@ class UploadURLForm(forms.ModelForm):
         fields = ['uploadURL', 'fileFromURL']
         videoTypes = ['avi', 'flv', 'wmv', 'mov', 'mp4','webm']
 
-    def save(self, *args, **kwargs):
-        print("save me")
+    def clean_uploadURL(self):
+        print("this is form")
         uploadURL = self.cleaned_data['uploadURL']
-        fileFromURL = self.cleaned_data['fileFromURL']
         # 파일 url 받아서 파싱한 후 저장
-        if uploadURL and not self.fileFromURL:
-            file_url = uploadURL
-            furl, file_extension = path.splitext(file_url)
+        file_url = uploadURL
+        furl, file_extension = path.splitext(file_url)
+        if URLValidator(file_url) == False and file_extension not in self.videoTypes:
+            print("raised")
+            raise forms.ValidationError('정확한 url형식을 적어주세요')
 
-            if URLValidator(file_url) == False and file_extension not in self.videoTypes:
-                raise forms.ValidationError('정확한 url형식을 적어주세요')
+        print("before return")
+        return uploadURL
 
-            file_name = file_url.split('/')[-1]
 
-            response = get(file_url)
-            binary_data = response.content
-            temp_file = BytesIO()
-            temp_file.write(binary_data)
-            temp_file.seek(0)
-            print(File(temp_file))
-            print("wow")
-            fileFromURL.save(
-                file_name,
-                File(temp_file)
-            )
-            print(self.uploadedFiles)
-        super(UploadURLForm, self).save()
 

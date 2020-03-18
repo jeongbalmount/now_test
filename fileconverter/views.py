@@ -8,7 +8,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import TemplateView
 from django.views.generic.edit import BaseCreateView
 
-from .models import UploadModel
+from .models import UploadModel, UploadURLmodel
 from .forms import UploadFileForm, UploadURLForm
 
 
@@ -18,7 +18,6 @@ class FileConvert(TemplateView):
 
 @ensure_csrf_cookie
 def FileUpload(request):
-    data = None
     dictNames = None
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
@@ -39,17 +38,23 @@ def FileUpload(request):
 
 def URLupload(request):
     if request.method == 'POST':
-        form = UploadURLForm(request.POST, request.FILES)
+        form = UploadURLForm(json.loads(request.body))
+        # valid_url = (json.loads(request.body))['uploadURL']
         if form.is_valid():
-            urlFile = request.FILES.get('fileFromURL')
-            print(urlFile)
-            urlFileName = urlFile.name
-            dictData = {'urlFileName': urlFileName}
-            form.save()
+            valid_url = form.cleaned_data['uploadURL']
+            print(valid_url)
+            urlInstance = UploadURLmodel(uploadURL=valid_url)
+            print("1")
+            wow = urlInstance.save()
+            print(wow)
+            # fileName = urlInstance.save(valid_url)
+            print("2")
+            dictData = {'fileName': wow}
             return JsonResponse(data=dictData, status=201)
-
         else:
-            return JsonResponse(data=form.errors, status=400)
+            errors = {'errors' : 'errors'}
+            print(form.errors)
+            return JsonResponse(data=errors, status=400)
 
 
 

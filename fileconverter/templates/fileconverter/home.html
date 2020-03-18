@@ -185,37 +185,37 @@
                             // form.append('fileNames', vm.fileNames[i]);
                         }
                         axios.post('/convert/upload/', form)
-                        .then(function (res) {
-                            console.log("POST RES", res);
-                            for (var i = 0; i < vm.fileList.length; i++) {
-                                vm.fileNamesWithCheck[i].fileUploaded = true;
-                                console.log(vm.fileNamesWithCheck[i].fileUploaded);
-                            }
-                            vm.forConvertButton[0].checkConverted = true;
-                            vm.fileSizeCheck[0].fileSize = false;
-                        })
-                        .catch(function (err) {
-                            console.log("GET ERR", err);
-                        })
+                            .then(function (res) {
+                                console.log("POST RES", res);
+                                for (var i = 0; i < vm.fileList.length; i++) {
+                                    vm.fileNamesWithCheck[i].fileUploaded = true;
+                                    console.log(vm.fileNamesWithCheck[i].fileUploaded);
+                                }
+                                vm.forConvertButton[0].checkConverted = true;
+                                vm.fileSizeCheck[0].fileSize = false;
+                            })
+                            .catch(function (err) {
+                                console.log("GET ERR", err);
+                            })
                     } else {
                         var sendURL = {uploadURL: this.inputURL};
                         console.log(vm.inputURL);
 
                         axios.post('/convert/urlupload/', sendURL)
-                        .then(function (res) {
-                            console.log("POST RES", res);
-                            // push하는 이유는 vue v-if를 조정시키기 위해서이다.
-                            vm.fileNamesWithCheck.push({
-                            fileName: 'notDefault',
-                            fileUploaded: true,
-                        });
-                        vm.fileSizeCheck.push({
-                            fileSize: false
-                        });
-                        })
-                        .catch(function (err) {
-                            console.log("GET ERR", err);
-                        })
+                            .then(function (res) {
+                                console.log("POST RES", res);
+                                // push하는 이유는 vue v-if를 조정시키기 위해서이다.
+                                vm.fileNamesWithCheck.push({
+                                fileName: 'notDefault',
+                                fileUploaded: true,
+                            });
+                            vm.fileSizeCheck.push({
+                                fileSize: false
+                            });
+                            })
+                            .catch(function (err) {
+                                console.log("GET ERR", err);
+                            })
                     }
                 },
                 add_files: function (event) {
