@@ -22,24 +22,29 @@
 </head>
 
 <body>
-    <div id="app" class="container hidden-div" v-cloak>
+    <div id="app" class="container" v-cloak>
         <div class="panel panel-default">
-            <div class="panel-heading"><strong>Make GIF</strong> </div>
+            <div class="panel-heading"><b>Make GIF</b></div>
             <div class="panel-body">
                 <h3>움짤 생성기</h3>
-                <div class="container empty" :class="{ ' hovered' : isHoverTrue }" @dragleave.prevent="onDragLeave"
-                    @dragover.prevent="onDragOver" @drop.prevent="onDrop">
-                    <div v-if="isHoverTrue == false">
-                        <h3 class="divCenter">이곳에 파일을 끌어다 놓으세요</h3>
+                <div class="container empty" :class="{ ' hovered' : isHoverTrue }" 
+                @dragleave.prevent="onDragLeave" @dragover.prevent="onDragOver" @drop.prevent="onDrop">
+                    <div v-if="isHoverTrue == false" class="row">
+                        <div class="col-sm center-block text-center height">        
+                        </div>
+                        <div class="col-sm center-block text-center height pt-5">
+                            <input class="file inputfile" type="file" id="image_uploads" multiple
+                                @change="add_files">
+                            <label for="image_uploads"><strong id="searchfile">파일 찾기 </strong> 
+                                <span>또는 박스에 파일 끌어다 놓기</span>
+                            </label>
+                        </div>
+                        <div class="col-sm center-block text-center height">        
+                        </div>
                     </div>
                 </div>
-                <div class="uploadFile" v-cloak>
-                    <label for="image_uploads" class="btn btn-secondary btn-lg btn-block">직접 파일 찾기</label>
-                    <input class="file" type="file" id="image_uploads" name="image_uploads" multiple
-                        @change="add_files">
-                    <!-- accept=".flv, .avi, .wmv, .mov, .mp4" -->
-                </div>
-                <input class="form-control" type="text" v-model="inputURL" placeholder="동영상 URL입력">
+                <br>
+                <input class="form-control" :class="{' disappear' : isSelectTrue}" type="text" v-model="inputURL" placeholder="동영상 URL입력">
                 <br>
                 <ol class="fileNames" style="list-style: none; padding-left:0px;">
                     <li v-for="(namecheck, index) in fileNamesWithCheck">
@@ -51,16 +56,13 @@
                             </button>
                         </div>
                     </li>
-                    <!-- v-if="namecheck.fileName != 'default'" -->
-                    <li v-for="(size, index) in fileSizeCheck">
-                        <p v-if="size.fileSize">총 파일 크기: [[ returnedFileSize(fileSize) ]]</p>
+                    <li v-if="fileSizeCheck">
+                        <p>총 파일 크기: [[ returnedFileSize(fileSize) ]]</p>
                     </li>
                 </ol>
-                <!-- <p>총 파일 크기: [[ returnedFileSize(fileSize) ]]</p> -->
                 <div v-for="(converted, index) in forConvertButton" class="buttons">
                     <button v-if="converted.checkConverted" type="submit" class="btn btn-success">움짤 만들기</button>
                     <button v-else type="submit" class="btn btn-success" v-on:click="uploadFiles()">업로드</button>
-                    <!-- <button v-on:click="remove_all()">모두 삭제</button> -->
                 </div>
             </div>
         </div>
@@ -81,6 +83,7 @@
             data: {
                 limitSize: 52428800,
                 isHoverTrue: false,
+                isSelectTrue: false,
                 file: '',
                 fileSize: 0,
                 fileList: [],
@@ -91,11 +94,7 @@
                         checkConverted: false,
                     }
                 ],
-                fileSizeCheck: [
-                    // {
-                    //     sizeCheck: false
-                    // }
-                ],
+                fileSizeCheck: false,
                 inputURL: '',
                 fileTypes: [
                     'video/avi',
@@ -149,6 +148,7 @@
                             alert("Url형식이 아닙니다");
                             return;
                         }
+                        this.isHoverTrue = true;
                     }
 
                     if (vm.fileList.length === 0 && verifiedURL !== true) {
@@ -206,12 +206,11 @@
                                 console.log("POST RES", res);
                                 // push하는 이유는 vue v-if를 조정시키기 위해서이다.
                                 vm.fileNamesWithCheck.push({
-                                fileName: 'notDefault',
+                                fileName: res.data.fileName,
                                 fileUploaded: true,
                             });
-                            vm.fileSizeCheck.push({
-                                fileSize: false
-                            });
+                            vm.forConvertButton[0].checkConverted = true;
+                            vm.fileSizeCheck = false
                             })
                             .catch(function (err) {
                                 console.log("GET ERR", err);
@@ -258,9 +257,8 @@
                             fileUploaded: false,
                         });
                     }
-                    this.fileSizeCheck.push({
-                        fileSize: true
-                    });
+                    this.fileSizeCheck = true;
+                    this.isSelectTrue = true;
                 },
 
                 returnedFileSize: function (number) {
@@ -286,8 +284,16 @@
                     this.fileSize -= this.fileList[index].size;
                     this.fileList.splice(index, 1);
                     this.fileNamesWithCheck.splice(index, 1);
+                    if (this.fileList.length == 0){
+                        this.isSelectTrue= false;      
+                        this.fileSizeCheck= false;
+                    }
                 },
                 onDrop: function (event) {
+                    if(vm.fileNamesWithCheck.length !== 0){      
+                        return;
+                    }
+
                     console.log("ondrop");
                     // event.stopPropagation();
                     // event.preventDefault();
@@ -332,11 +338,9 @@
                             fileName: file.name,
                             fileUploaded: false,
                         });
-                        this.fileUploadedCheckList.push(false);
                     }
-                    this.fileSizeCheck.push({
-                        fileSize: true
-                    });
+                    this.fileSizeCheck = true;
+                    this.isSelectTrue = true;
                     this.isHoverTrue = false;
                 },
 

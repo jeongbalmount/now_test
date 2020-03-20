@@ -42,18 +42,13 @@ def URLupload(request):
         # valid_url = (json.loads(request.body))['uploadURL']
         if form.is_valid():
             valid_url = form.cleaned_data['uploadURL']
-            print(valid_url)
             urlInstance = UploadURLmodel(uploadURL=valid_url)
-            print("1")
             wow = urlInstance.save()
-            print(wow)
             # fileName = urlInstance.save(valid_url)
-            print("2")
             dictData = {'fileName': wow}
             return JsonResponse(data=dictData, status=201)
         else:
             errors = {'errors' : 'errors'}
-            print(form.errors)
             return JsonResponse(data=errors, status=400)
 
 

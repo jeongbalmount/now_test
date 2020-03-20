@@ -23,9 +23,14 @@ class UploadFileForm(forms.ModelForm):
         uploadFileList = self.files.getlist('uploadedFiles')
         AllfileSize = 0
 
+        # if uploadFiles.multiple_chunks(52428800):
+        #     pass
+        # else:
+        #     raise forms.ValidationError('파일 전체크기가 너무 큽니다.')
+
         if len(uploadFileList) > 2 :
             raise forms.ValidationError('파일이 2개 이상입니다.')
-        print("len")
+
         for filesize in uploadFileList:
             AllfileSize = filesize.size
             print(filesize.size)
@@ -35,18 +40,13 @@ class UploadFileForm(forms.ModelForm):
             raise forms.ValidationError('파일 전체 크기가 너무 큽니다.')
 
         for file in uploadFileList:
-            # print(file)
-            checkfile = filetype.guess(file)
-            print(checkfile.mime)
+            checkfile = file.content_type
 
             # 비디오 파일이 아닐시
-            if checkfile.mime not in self.videoTypes:
+            if checkfile not in self.videoTypes:
                 print('파일 형식')
                 raise forms.ValidationError('mp4와 같은 비디오 파일을 입력해 주세요')
 
-
-            print('File extension: %s' % checkfile.extension)
-            print('File MIME type: %s' % checkfile.mime)
         print(uploadFileList)
 
         return uploadFiles

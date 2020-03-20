@@ -1,16 +1,33 @@
 .empty {
-    height: 300px;
     border: 3px salmon solid;
     background-color: #eee;
+    height: 180px;
+}
+
+.height {
+    height:30px;
 }
 
 .hovered {
     background: #f4f4f4;
     border-style: dashed;
 }
+
 .divCenter {
-    line-height: 300px;
+    line-height: 100px;
     text-align: center;
 }
- 
+label strong{
+    color: black;
+}
+
+label strong:hover{
+    color: #FAAC58;
+    cursor: pointer;
+}
+
+.disappear {
+    display: none;
+}
+
 [v-cloak] {display: none;}

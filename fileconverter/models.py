@@ -21,6 +21,7 @@ class UploadURLmodel(models.Model):
         print("in model")
         if self.uploadURL and not self.fileFromURL:
             print("uploadURK")
+            super().save(*args, **kwargs)
             file_url = self.uploadURL
 
             file_name = file_url.split('/')[-1]
@@ -31,10 +32,12 @@ class UploadURLmodel(models.Model):
             temp_file.write(binary_data)
             temp_file.seek(0)
             print("파일 저장")
+            # fileField에 들어 있는 save(name, content, safe?)메소드 사용
             self.fileFromURL.save(
                 file_name,
                 File(temp_file)
             )
+            print("return from save")
             print(self.fileFromURL.name)
             return self.fileFromURL.name
 
