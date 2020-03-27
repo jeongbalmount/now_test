@@ -1,12 +1,9 @@
-from io import BytesIO
 from os import path
 from django.core.validators import URLValidator
 from django import forms
-from django.core.files import File
-from requests import get
 
-from .models import UploadModel, UploadURLmodel
-import filetype
+from .models import UploadModel, UploadURLmodel, CheckFileType
+
 
 
 class UploadFileForm(forms.ModelForm):
@@ -22,11 +19,6 @@ class UploadFileForm(forms.ModelForm):
         uploadFiles = self.cleaned_data['uploadedFiles']
         uploadFileList = self.files.getlist('uploadedFiles')
         AllfileSize = 0
-
-        # if uploadFiles.multiple_chunks(52428800):
-        #     pass
-        # else:
-        #     raise forms.ValidationError('파일 전체크기가 너무 큽니다.')
 
         if len(uploadFileList) > 2 :
             raise forms.ValidationError('파일이 2개 이상입니다.')
@@ -70,6 +62,12 @@ class UploadURLForm(forms.ModelForm):
 
         print("before return")
         return uploadURL
+
+
+class CheckTypeForm(forms.ModelForm):
+    class Meta:
+        model = CheckFileType
+        fields = '__all__'
 
 
 

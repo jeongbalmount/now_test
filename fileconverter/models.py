@@ -46,3 +46,8 @@ class UploadURLmodel(models.Model):
 
     def __str__(self):
         return self.fileFromURL.name
+
+
+class CheckFileType(models.Model):
+    checkType = models.BooleanField(blank=False)
+

@@ -1,15 +1,14 @@
 import base64
 import json
+import ffmpeg
+import re
 
-from django.forms import model_to_dict
 from django.http import JsonResponse
-from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import TemplateView
-from django.views.generic.edit import BaseCreateView
 
 from .models import UploadModel, UploadURLmodel
-from .forms import UploadFileForm, UploadURLForm
+from .forms import UploadFileForm, UploadURLForm, CheckTypeForm
 
 
 class FileConvert(TemplateView):
@@ -17,7 +16,7 @@ class FileConvert(TemplateView):
 
 
 @ensure_csrf_cookie
-def FileUpload(request):
+def fileUpload(request):
     dictNames = None
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
@@ -50,6 +49,34 @@ def URLupload(request):
         else:
             errors = {'errors' : 'errors'}
             return JsonResponse(data=errors, status=400)
+
+
+def convertFile(request):
+    url_list = []
+    if request.method == 'POST':
+        form = CheckTypeForm(json.loads(request.body))
+        if form.is_valid():
+            form_type = form.cleaned_data['checkType']
+            if form_type:
+                files = UploadURLmodel.objects.all() # url이 넘어 온거면 파일 무조건 1개
+                input_path_url = files.fileFromURL.path
+                converted_url = convertByFF(input_path_url)
+            else:
+                files = UploadModel.objects.all()
+                for item in files:
+                    input_path = item.UploadedFiles.path
+                    gif_file = convertByFF(input_path) # 일반 파일만 넘어 온거면 1개이상 2개 이하
+                    url_list.append(gif_file)
+        else:
+            errors = {'errors': 'errors'}
+            return JsonResponse(data=errors, status=400)
+
+
+def convertByFF(input_url):
+    re_thing = re.compile('.+(?<=/)')
+    front_url = re_thing.findall(input_url)
+    input_stream = ffmpeg.input('{}'.format(input_url))
+    outFile = ffmpeg.output(input_stream, '')
 
 
 

@@ -61,16 +61,13 @@
                     </li>
                 </ol>
                 <div v-for="(converted, index) in forConvertButton" class="buttons">
-                    <button v-if="converted.checkConverted" type="submit" class="btn btn-success">움짤 만들기</button>
+                    <button v-if="converted.checkConverted" type="submit" class="btn btn-success" v-on:click="convertFiles()">
+                        움짤 만들기</button>
                     <button v-else type="submit" class="btn btn-success" v-on:click="uploadFiles()">업로드</button>
                 </div>
             </div>
         </div>
     </div>
-
-
-    <!-- <script src='https://unpkg.com/vue/dist/vue.min.js'></script> -->
-    <!-- <script src="https://unpkg.com/axios/dist/axios.min.js"></script> -->
     <script>
         axios.defaults.xsrfCookieName = 'csrftoken';
         axios.defaults.xsrfHeaderName = 'x-CSRFToken';
@@ -81,21 +78,23 @@
             delimiters: ['[[', ']]'],
             el: '#app',
             data: {
-                limitSize: 52428800,
-                isHoverTrue: false,
-                isSelectTrue: false,
-                file: '',
-                fileSize: 0,
-                fileList: [],
+                limitSize: 52428800, // 파일 최대 크기 50MB 넘지 않도록
+                isHoverTrue: false, // 파일이 박스에 드래그된 상태인지 아닌지 확인
+                isSelectTrue: false, // url이 아닌 파일이 들어가면 url없애기 위한 변수
+                // file: '',
+                fileSize: 0, // 파일 사이즈
+                fileList: [], // 실제 파일을 담는 리스트
+                convertedFileList: [],
                 fileNamesWithCheck: [
-                ],
+                ], // 파일 이름을 저장하고 파일 이름이 저장 됨과 동시에 백으로 넘어 갔다는걸 체크하는 부분도 저장
                 forConvertButton: [
                     {
                         checkConverted: false,
                     }
                 ],
-                fileSizeCheck: false,
-                inputURL: '',
+                fileSizeCheck: false, // 파일 전체 크기
+                inputURL: '', // 전달할 url이 들어 있다.
+                isURL: false,
                 fileTypes: [
                     'video/avi',
                     'video/flv',
@@ -114,6 +113,7 @@
 
             },
             methods: {
+                // 기본적인 url인지 확인
                 verifyURL: function (checkURL) {
                     console.log("verifyURL");
                     var url = checkURL;
@@ -126,7 +126,7 @@
                         return false;
                     }
                 },
-
+                // video형식 파일인지 확인
                 verifyExtends: function(url) {
                     var fileExtends = url.split(/\#|\?/)[0].split('.').pop().trim();
                     console.log(fileExtends)
@@ -150,100 +150,121 @@
                         }
                         this.isHoverTrue = true;
                     }
-
+                    // 파일이나 url이 아무것도 없을때
                     if (vm.fileList.length === 0 && verifiedURL !== true) {
                         alert("파일을 추가해 주세요")
                         return;
                     }
 
-
-                    // 파일을 base64형태로 바꾸는 작업 
-                    // for (var i = 0; i < vm.fileList.length; i++) {
-                    //     var file = vm.fileList[i]
-
-                    //     function getBase(file, callback) {
-                    //         var reader = new FileReader();
-                    //         reader.onload = function (file) {
-                    //             var result = file.target.result;
-                    //             console.log(result);
-                    //             callback(result);
-                    //         }
-                    //         reader.readAsDataURL(file);
-                    //     }
-                    //     // FileReader형식이 비동기이기 때문에 콜백함수 사용
-                    //     getBase(file, function(result){
-                    //         vm.fileURLList[i] = result;
-                    //         console.log(vm.fileURLList[i]);
-                    //     })
-                    // }
-
                     var form = new FormData();
                     if (vm.fileList.length !== 0) {
                         for (var i = 0; i < vm.fileList.length; i++) {
+                            //form을 통해서 1개나 2개의 파일을 보낸다.
                             form.append('uploadedFiles', vm.fileList[i]);
                             console.log(vm.fileList[i]);
-                            // form.append('fileNames', vm.fileNames[i]);
                         }
                         axios.post('/convert/upload/', form)
                             .then(function (res) {
                                 console.log("POST RES", res);
                                 for (var i = 0; i < vm.fileList.length; i++) {
+                                    // 파일이 업로드 되면 fileUploaded에 true 넣어서 upload완료 뜨게함.
                                     vm.fileNamesWithCheck[i].fileUploaded = true;
                                     console.log(vm.fileNamesWithCheck[i].fileUploaded);
                                 }
+                                // 변환하기 버튼이 뜨도록 만드는 checkconverted버튼 true
                                 vm.forConvertButton[0].checkConverted = true;
-                                vm.fileSizeCheck[0].fileSize = false;
+                                // 보내고 나서 파일 크기 나타내는 부분 없애기
+                                vm.fileSizeCheck = false;
                             })
                             .catch(function (err) {
                                 console.log("GET ERR", err);
                             })
                     } else {
+                        // url 보냈을때 부분
+                        // url은 폼데이터가 아닌 딕셔너리 형식으로 보냄
                         var sendURL = {uploadURL: this.inputURL};
+                        vm.isURL = true;
+                        // 나중에 파일 변환을 url기반 파일이냐 일반파일이냐 구분 하기 위해 
+                        // 만든 변수
                         console.log(vm.inputURL);
 
                         axios.post('/convert/urlupload/', sendURL)
                             .then(function (res) {
-                                console.log("POST RES", res);
-                                // push하는 이유는 vue v-if를 조정시키기 위해서이다.
-                                vm.fileNamesWithCheck.push({
-                                fileName: res.data.fileName,
-                                fileUploaded: true,
-                            });
-                            vm.forConvertButton[0].checkConverted = true;
-                            vm.fileSizeCheck = false
+                                    console.log("POST RES", res);
+                                    // push하는 이유는 vue v-if를 조정시키기 위해서이다.
+                                    vm.fileNamesWithCheck.push({
+                                    fileName: res.data.fileName,
+                                    fileUploaded: true,
+                                });
+                                // 변환하기 버튼 나오게함
+                                vm.forConvertButton[0].checkConverted = true;
+                                // 파일 크기 없앰
+                                vm.fileSizeCheck = false
                             })
                             .catch(function (err) {
                                 console.log("GET ERR", err);
                             })
                     }
                 },
+
+                convertFiles: function () {
+                    if(this.isURL !== true){
+                        return;
+                    }
+                    var sendFileInfo = {'checkType': isURL};
+                    axios.post('/convert/fileconvert/', sendFileInfo)
+                        .then(function(res){
+                            if (this.isURL === true){
+                                this.convertedFileList[0] = res.data.convertedFile;
+                            }else{
+                                for (var i = 0; i < vm.fileList.length; i++) {
+                                    // 넘어온 파일들을 convertedFiles 리스트에 집어넣는다.
+                                    // 임시로 넘어오는 데이터가 리스트라고 정의
+                                    this.convertedFileList[i] = res.data.fileList[i];
+                                }
+                            }
+                        })
+                        .catch(function(err){
+                            console.log("GET ERR",err);
+                        })
+                    
+                },
+
                 add_files: function (event) {
+                    if(this.forConvertButton[0].checkConverted == true){    
+                        // 이미 업로드된 파일이 있으면 더이상 파일 못 받게 하기  
+                        alert('새로고침 후에 사용해 주세요');
+                        return;
+                    }else if(this.fileList.length == 2) {
+                        alert('파일 최대 2개까지 선택가능');
+                        return;
+                    }
+                    // 파일 직접 찾아서 넣는 부분
                     console.log(event.target.files);
                     files = event.target.files;
-
+                    // 파일 크기 업데이트
                     this.addFileSize(files);
 
                     for (file of files) {
                         console.log(typeof (file.type));
                         console.log(file.type);
                         if (!this.validFileType(file.type)) {
+                            // 비디오 파일이 아니면 alert하고 더했던 파일 크기 줄이기
                             alert("변환할 수 있는 파일이 아닙니다");
                             this.minusFileSize(files);
                             return;
                         }
                     }
-
+                    // 파일 개수 업데이트
                     var fileCountLimit = this.fileList.length + files.length;
 
                     if (fileCountLimit > 2) {
+                        //파일 개수 체크
                         alert("파일 최대 2개까지 선택가능");
                         this.minusFileSize(files);
                         return;
                     } else if (this.fileSize > this.limitSize) {
                         alert("파일 총 크기 제한 50MB");
-                        // for(file of files){
-                        //     this.fileSize = this.fileSize - file.size;
-                        // }
                         console.log(this.fileSize);
                         console.log(typeof (files));
                         this.minusFileSize(files);
@@ -257,7 +278,9 @@
                             fileUploaded: false,
                         });
                     }
+                    // 파일 사이즈를 보여주도록 true를 준다.
                     this.fileSizeCheck = true;
+                    // url이 아닌 파일이 선택되어서 url을 지우게 만든다.
                     this.isSelectTrue = true;
                 },
 
@@ -270,27 +293,32 @@
                         return (number / 1048576).toFixed(1) + 'MB';
                     }
                 },
-
-                // remove_all() {
-                //     console.log(this.fileList.length);
-
-                //     this.fileList.splice(0, this.fileList.length);
-                //     this.fileNames.splice(0, this.fileNames.length);
-                //     this.fileSize = 0;
-                // },
                 remove_todo: function (index) {
+                    // 하나씩 지우는 부분
                     console.log(index);
                     console.log(this.fileList[index].size);
+                    // 총사이즈에서 지우는 파일 크기 빼는 부분
                     this.fileSize -= this.fileList[index].size;
+                    // 파일 리스트에서 그 파일 지우기
                     this.fileList.splice(index, 1);
+                    // 파일 이름 지우기
                     this.fileNamesWithCheck.splice(index, 1);
                     if (this.fileList.length == 0){
+                        // 모든 파일 지운 상태면 url 살리고 파일 크기 보여주는 부분 없앤다.
                         this.isSelectTrue= false;      
                         this.fileSizeCheck= false;
                     }
                 },
                 onDrop: function (event) {
-                    if(vm.fileNamesWithCheck.length !== 0){      
+                    // drag&drop으로 파일 받는 부분
+                    if(this.forConvertButton[0].checkConverted == true){  
+                        alert('새로고침 후에 사용해 주세요');
+                        // 이미 업로드된 파일이 있으면 더이상 파일 못 받게 하기  
+                        this.isHoverTrue = false;
+                        return;
+                    }else if(this.fileList.length == 2) {
+                        alert('파일 최대 2개까지 선택가능');
+                        this.isHoverTrue = false;
                         return;
                     }
 
@@ -299,38 +327,41 @@
                     // event.preventDefault();
 
                     console.log('dragEnter');
+                    // 파일이 박스안에 드래그 되면 .hovered 스타일 추가
                     this.className += ' hovered';
-
+                    // 드래그로 들어온 파일들
                     var files = event.dataTransfer.files;
 
                     this.addFileSize(files);
                     console.log(this.fileSize);
 
                     for (file of files) {
-                        console.log(typeof (file.type));
+                        console.log(typeof(file.type));
                         console.log(file.type);
                         if (!this.validFileType(file.type)) {
                             alert("변환할 수 있는 파일이 아닙니다");
                             this.minusFileSize(files);
+                            // 변환할 수 없다는거 보여주고 원래 상태로 돌아오기
+                            this.isHoverTrue = false;
                             return;
                         }
                     }
-
+                    console.log(this.fileList.length, files.length)
                     var fileCountLimit = this.fileList.length + files.length;
+
                     if (fileCountLimit > 2) {
+                        //파일 개수 체크
                         alert("파일 최대 2개까지 선택가능");
                         this.minusFileSize(files);
-                        this.isHoverTrue = false;
                         return;
                     } else if (this.fileSize > this.limitSize) {
                         alert("파일 총 크기 제한 50MB");
-
                         console.log(this.fileSize);
                         console.log(typeof (files));
                         this.minusFileSize(files);
-                        this.isHoverTrue = false;
                         return;
                     }
+                    
 
                     for (file of files) {
                         this.fileList.push(file);
@@ -339,9 +370,9 @@
                             fileUploaded: false,
                         });
                     }
-                    this.fileSizeCheck = true;
-                    this.isSelectTrue = true;
-                    this.isHoverTrue = false;
+                    this.fileSizeCheck = true; //파일 사이즈 나오게함
+                    this.isSelectTrue = true;// url없애기
+                    this.isHoverTrue = false;// 파일 제대로 놓으면 원래대로 놓기
                 },
 
                 onDragOver: function (event) {
@@ -386,15 +417,6 @@
         });
 
     </script>
-    <!-- <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
-        integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
-        crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
-        integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
-        crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
-        integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
-        crossorigin="anonymous"></script> -->
 
 </body>
 
