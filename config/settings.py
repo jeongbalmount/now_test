@@ -115,6 +115,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
 
+SITE_ID = 1
+
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'Asia/Seoul'
@@ -129,16 +131,18 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
-AWS_ACCESS_KEY_ID = 'AKIA3VLA64D56FHPGOXL'
-AWS_SECRET_ACCESS_KEY = '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'
+AWS_ACCESS_KEY_ID = 'AKIA3VLA64D57IQZ2REW'
+AWS_SECRET_ACCESS_KEY = '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'
+AWS_CLOUDFRONT_DOMAIN = 'd3dl1wfbj6c90q.cloudfront.net'
 AWS_REGION = 'ap-northeast-2'
 AWS_STORAGE_BUCKET_NAME = 'fileconvertstorage'
 AWS_S3_CUSTOM_DOMAIN = '%s.s3.%s.amazonaws.com' % (AWS_STORAGE_BUCKET_NAME, AWS_REGION)
 AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400',
 }
-AWS_DEFAULT_ACL = 'public-read'
+AWS_DEFAULT_ACL = None
 AWS_LOCATION = 'static'
+
 
 STATIC_URL = 'https://%s/%s/' % (AWS_S3_CUSTOM_DOMAIN, AWS_REGION)
 STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'

@@ -26,34 +26,57 @@
         <div class="panel panel-default">
             <div class="panel-heading"><b>Make GIF</b></div>
             <div class="panel-body">
+                <button type="button" class="btn btn-secondary float-right btn-circle" data-container="body"
+                    data-toggle="popover" data-placement="left" title="움짤 생성기 설명"
+                    data-content="<li>동시에 2개의 동영상파일까지 gif변환 가능합니다.</li>
+                    <li>총 파일 용량제한은 50MB입니다.</li>
+                    <li>변환 가능한 파일형태는 mp4, webm, flv, avi, 등 다양한 동영상 파일 형태입니다.</li>
+                    <li>fps25는 최대 12초, fps15는 최대 20초, fps10은 최대 30초까지 변환됩니다. </li>" data-html="true">
+                    i
+                </button>
                 <h3>움짤 생성기</h3>
-                <div class="container empty" :class="{ ' hovered' : isHoverTrue }" 
-                @dragleave.prevent="onDragLeave" @dragover.prevent="onDragOver" @drop.prevent="onDrop">
+                <div class="container empty" :class="{ ' hovered' : isHoverTrue }" @dragleave.prevent="onDragLeave"
+                    @dragover.prevent="onDragOver" @drop.prevent="onDrop">
                     <div v-if="isHoverTrue == false" class="row">
-                        <div class="col-sm center-block text-center height">        
+                        <div class="col-sm center-block text-center height">
                         </div>
                         <div class="col-sm center-block text-center height pt-5">
-                            <input class="file inputfile" type="file" id="image_uploads" multiple
-                                @change="add_files">
-                            <label for="image_uploads"><strong id="searchfile">파일 찾기 </strong> 
+                            <input class="file inputfile" type="file" id="image_uploads" multiple @change="add_files">
+                            <label for="image_uploads"><strong id="searchfile">파일 찾기 </strong>
                                 <span>또는 박스에 파일 끌어다 놓기</span>
                             </label>
                         </div>
-                        <div class="col-sm center-block text-center height">        
+                        <div class="col-sm center-block text-center height">
                         </div>
                     </div>
                 </div>
                 <br>
-                <input class="form-control" :class="{' disappear' : isSelectTrue}" type="text" v-model="inputURL" placeholder="동영상 URL입력">
+                <input class="form-control" :class="{' disappear' : isSelectTrue}" type="text" v-model="inputURL"
+                    placeholder="동영상 URL입력">
                 <br>
                 <ol class="fileNames" style="list-style: none; padding-left:0px;">
                     <li v-for="(namecheck, index) in fileNamesWithCheck">
                         <div v-if="namecheck.fileName != 'default'" class="p-3 mb-2 bg-light text-dark">
                             <span>[[ namecheck.fileName ]]</span>
-                            <button type="button" class="close" aria-label="Close">
-                                <span v-if="namecheck.fileUploaded">upload완료</span>
+                            <button type="button" class="float-right close" aria-label="Close">
+                                <span v-if="namecheck.fileUploaded"><a :href=namecheck.convertedFileUrl>움짤
+                                        다운로드</a></span>
                                 <span v-else aria-hidden="true" v-on:click="remove_todo(index)">&times;</span>
                             </button>
+                        </div>
+                        <div class="input-group mb-2" v-if="index==0 && namecheck.fileUploaded == false">
+                            <select class="custom-select" id="inputGroupSelect02" v-model="fpsValue_1">
+                                <option value="15">15fps</option>
+                                <option value="25">25fps</option>
+                                <option value="10">10fps</option>
+                            </select>
+                        </div>
+                        <div class="input-group mb-2" v-if="index==1">
+                            <select class="custom-select" id="inputGroupSelect02" v-model="fpsValue_2">
+                                <option value="15">15fps</option>
+                                <option value="25">25fps</option>
+                                <option value="10">10fps</option>
+                            </select>
                         </div>
                     </li>
                     <li v-if="fileSizeCheck">
@@ -61,361 +84,17 @@
                     </li>
                 </ol>
                 <div v-for="(converted, index) in forConvertButton" class="buttons">
-                    <button v-if="converted.checkConverted" type="submit" class="btn btn-success" v-on:click="convertFiles()">
-                        움짤 만들기</button>
-                    <button v-else type="submit" class="btn btn-success" v-on:click="uploadFiles()">업로드</button>
+                    <button v-if="converted.checkConverted==false" type="submit" class="btn btn-success"
+                        v-on:click="uploadFiles()">업로드</button>
+                    <button v-if="converted.nowLoading" class="btn btn-success" type="button" disabled>
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    </button>
+                    <button v-if="converted.loadingDone" class="btn btn-success" type="button" disabled>변환완료</button>
                 </div>
             </div>
         </div>
     </div>
-    <script>
-        axios.defaults.xsrfCookieName = 'csrftoken';
-        axios.defaults.xsrfHeaderName = 'x-CSRFToken';
-        var input = document.querySelector('input');
-        input.style.opacity = 0;
-
-        var vm = new Vue({
-            delimiters: ['[[', ']]'],
-            el: '#app',
-            data: {
-                limitSize: 52428800, // 파일 최대 크기 50MB 넘지 않도록
-                isHoverTrue: false, // 파일이 박스에 드래그된 상태인지 아닌지 확인
-                isSelectTrue: false, // url이 아닌 파일이 들어가면 url없애기 위한 변수
-                // file: '',
-                fileSize: 0, // 파일 사이즈
-                fileList: [], // 실제 파일을 담는 리스트
-                convertedFileList: [],
-                fileNamesWithCheck: [
-                ], // 파일 이름을 저장하고 파일 이름이 저장 됨과 동시에 백으로 넘어 갔다는걸 체크하는 부분도 저장
-                forConvertButton: [
-                    {
-                        checkConverted: false,
-                    }
-                ],
-                fileSizeCheck: false, // 파일 전체 크기
-                inputURL: '', // 전달할 url이 들어 있다.
-                isURL: false,
-                fileTypes: [
-                    'video/avi',
-                    'video/flv',
-                    'video/wmv',
-                    'video/mov',
-                    'video/mp4'
-                ],
-                fileEndTypes: [
-                    'avi',
-                    'flv',
-                    'wmv',
-                    'mov',
-                    'mp4',
-                    'webm',
-                ]
-
-            },
-            methods: {
-                // 기본적인 url인지 확인
-                verifyURL: function (checkURL) {
-                    console.log("verifyURL");
-                    var url = checkURL;
-                    var pattern = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/;
-                    var fileExtend = this.verifyExtends(url);
-                    console.log(fileExtend);
-                    if (pattern.test(url) && fileExtend) {
-                        return true;
-                    } else {
-                        return false;
-                    }
-                },
-                // video형식 파일인지 확인
-                verifyExtends: function(url) {
-                    var fileExtends = url.split(/\#|\?/)[0].split('.').pop().trim();
-                    console.log(fileExtends)
-                    if (this.fileEndTypes.includes(fileExtends)){
-                        return true;
-                    }
-                    else {
-                        return false;
-                    }
-                },
-
-                uploadFiles: function () {
-                    var vm = this;
-                    var verifiedURL;
-
-                    if (vm.inputURL !== '') {
-                        verifiedURL = this.verifyURL(this.inputURL);
-                        if (verifiedURL === false) {
-                            alert("Url형식이 아닙니다");
-                            return;
-                        }
-                        this.isHoverTrue = true;
-                    }
-                    // 파일이나 url이 아무것도 없을때
-                    if (vm.fileList.length === 0 && verifiedURL !== true) {
-                        alert("파일을 추가해 주세요")
-                        return;
-                    }
-
-                    var form = new FormData();
-                    if (vm.fileList.length !== 0) {
-                        for (var i = 0; i < vm.fileList.length; i++) {
-                            //form을 통해서 1개나 2개의 파일을 보낸다.
-                            form.append('uploadedFiles', vm.fileList[i]);
-                            console.log(vm.fileList[i]);
-                        }
-                        axios.post('/convert/upload/', form)
-                            .then(function (res) {
-                                console.log("POST RES", res);
-                                for (var i = 0; i < vm.fileList.length; i++) {
-                                    // 파일이 업로드 되면 fileUploaded에 true 넣어서 upload완료 뜨게함.
-                                    vm.fileNamesWithCheck[i].fileUploaded = true;
-                                    console.log(vm.fileNamesWithCheck[i].fileUploaded);
-                                }
-                                // 변환하기 버튼이 뜨도록 만드는 checkconverted버튼 true
-                                vm.forConvertButton[0].checkConverted = true;
-                                // 보내고 나서 파일 크기 나타내는 부분 없애기
-                                vm.fileSizeCheck = false;
-                            })
-                            .catch(function (err) {
-                                console.log("GET ERR", err);
-                            })
-                    } else {
-                        // url 보냈을때 부분
-                        // url은 폼데이터가 아닌 딕셔너리 형식으로 보냄
-                        var sendURL = {uploadURL: this.inputURL};
-                        vm.isURL = true;
-                        // 나중에 파일 변환을 url기반 파일이냐 일반파일이냐 구분 하기 위해 
-                        // 만든 변수
-                        console.log(vm.inputURL);
-
-                        axios.post('/convert/urlupload/', sendURL)
-                            .then(function (res) {
-                                    console.log("POST RES", res);
-                                    // push하는 이유는 vue v-if를 조정시키기 위해서이다.
-                                    vm.fileNamesWithCheck.push({
-                                    fileName: res.data.fileName,
-                                    fileUploaded: true,
-                                });
-                                // 변환하기 버튼 나오게함
-                                vm.forConvertButton[0].checkConverted = true;
-                                // 파일 크기 없앰
-                                vm.fileSizeCheck = false
-                            })
-                            .catch(function (err) {
-                                console.log("GET ERR", err);
-                            })
-                    }
-                },
-
-                convertFiles: function () {
-                    if(this.isURL !== true){
-                        return;
-                    }
-                    var sendFileInfo = {'checkType': isURL};
-                    axios.post('/convert/fileconvert/', sendFileInfo)
-                        .then(function(res){
-                            if (this.isURL === true){
-                                this.convertedFileList[0] = res.data.convertedFile;
-                            }else{
-                                for (var i = 0; i < vm.fileList.length; i++) {
-                                    // 넘어온 파일들을 convertedFiles 리스트에 집어넣는다.
-                                    // 임시로 넘어오는 데이터가 리스트라고 정의
-                                    this.convertedFileList[i] = res.data.fileList[i];
-                                }
-                            }
-                        })
-                        .catch(function(err){
-                            console.log("GET ERR",err);
-                        })
-                    
-                },
-
-                add_files: function (event) {
-                    if(this.forConvertButton[0].checkConverted == true){    
-                        // 이미 업로드된 파일이 있으면 더이상 파일 못 받게 하기  
-                        alert('새로고침 후에 사용해 주세요');
-                        return;
-                    }else if(this.fileList.length == 2) {
-                        alert('파일 최대 2개까지 선택가능');
-                        return;
-                    }
-                    // 파일 직접 찾아서 넣는 부분
-                    console.log(event.target.files);
-                    files = event.target.files;
-                    // 파일 크기 업데이트
-                    this.addFileSize(files);
-
-                    for (file of files) {
-                        console.log(typeof (file.type));
-                        console.log(file.type);
-                        if (!this.validFileType(file.type)) {
-                            // 비디오 파일이 아니면 alert하고 더했던 파일 크기 줄이기
-                            alert("변환할 수 있는 파일이 아닙니다");
-                            this.minusFileSize(files);
-                            return;
-                        }
-                    }
-                    // 파일 개수 업데이트
-                    var fileCountLimit = this.fileList.length + files.length;
-
-                    if (fileCountLimit > 2) {
-                        //파일 개수 체크
-                        alert("파일 최대 2개까지 선택가능");
-                        this.minusFileSize(files);
-                        return;
-                    } else if (this.fileSize > this.limitSize) {
-                        alert("파일 총 크기 제한 50MB");
-                        console.log(this.fileSize);
-                        console.log(typeof (files));
-                        this.minusFileSize(files);
-                        return;
-                    }
-
-                    for (file of files) {
-                        this.fileList.push(file);
-                        this.fileNamesWithCheck.push({
-                            fileName: file.name,
-                            fileUploaded: false,
-                        });
-                    }
-                    // 파일 사이즈를 보여주도록 true를 준다.
-                    this.fileSizeCheck = true;
-                    // url이 아닌 파일이 선택되어서 url을 지우게 만든다.
-                    this.isSelectTrue = true;
-                },
-
-                returnedFileSize: function (number) {
-                    if (number < 1024) {
-                        return number + 'bytes';
-                    } else if (number >= 1024 && number < 1048576) {
-                        return (number / 1024).toFixed(1) + 'KB';
-                    } else if (number >= 1048576) {
-                        return (number / 1048576).toFixed(1) + 'MB';
-                    }
-                },
-                remove_todo: function (index) {
-                    // 하나씩 지우는 부분
-                    console.log(index);
-                    console.log(this.fileList[index].size);
-                    // 총사이즈에서 지우는 파일 크기 빼는 부분
-                    this.fileSize -= this.fileList[index].size;
-                    // 파일 리스트에서 그 파일 지우기
-                    this.fileList.splice(index, 1);
-                    // 파일 이름 지우기
-                    this.fileNamesWithCheck.splice(index, 1);
-                    if (this.fileList.length == 0){
-                        // 모든 파일 지운 상태면 url 살리고 파일 크기 보여주는 부분 없앤다.
-                        this.isSelectTrue= false;      
-                        this.fileSizeCheck= false;
-                    }
-                },
-                onDrop: function (event) {
-                    // drag&drop으로 파일 받는 부분
-                    if(this.forConvertButton[0].checkConverted == true){  
-                        alert('새로고침 후에 사용해 주세요');
-                        // 이미 업로드된 파일이 있으면 더이상 파일 못 받게 하기  
-                        this.isHoverTrue = false;
-                        return;
-                    }else if(this.fileList.length == 2) {
-                        alert('파일 최대 2개까지 선택가능');
-                        this.isHoverTrue = false;
-                        return;
-                    }
-
-                    console.log("ondrop");
-                    // event.stopPropagation();
-                    // event.preventDefault();
-
-                    console.log('dragEnter');
-                    // 파일이 박스안에 드래그 되면 .hovered 스타일 추가
-                    this.className += ' hovered';
-                    // 드래그로 들어온 파일들
-                    var files = event.dataTransfer.files;
-
-                    this.addFileSize(files);
-                    console.log(this.fileSize);
-
-                    for (file of files) {
-                        console.log(typeof(file.type));
-                        console.log(file.type);
-                        if (!this.validFileType(file.type)) {
-                            alert("변환할 수 있는 파일이 아닙니다");
-                            this.minusFileSize(files);
-                            // 변환할 수 없다는거 보여주고 원래 상태로 돌아오기
-                            this.isHoverTrue = false;
-                            return;
-                        }
-                    }
-                    console.log(this.fileList.length, files.length)
-                    var fileCountLimit = this.fileList.length + files.length;
-
-                    if (fileCountLimit > 2) {
-                        //파일 개수 체크
-                        alert("파일 최대 2개까지 선택가능");
-                        this.minusFileSize(files);
-                        return;
-                    } else if (this.fileSize > this.limitSize) {
-                        alert("파일 총 크기 제한 50MB");
-                        console.log(this.fileSize);
-                        console.log(typeof (files));
-                        this.minusFileSize(files);
-                        return;
-                    }
-                    
-
-                    for (file of files) {
-                        this.fileList.push(file);
-                        this.fileNamesWithCheck.push({
-                            fileName: file.name,
-                            fileUploaded: false,
-                        });
-                    }
-                    this.fileSizeCheck = true; //파일 사이즈 나오게함
-                    this.isSelectTrue = true;// url없애기
-                    this.isHoverTrue = false;// 파일 제대로 놓으면 원래대로 놓기
-                },
-
-                onDragOver: function (event) {
-                    // event.stopPropagation();
-                    // event.preventDefault();
-
-                    console.log('dragOver');
-                    this.isHoverTrue = true;
-                },
-
-                onDragLeave: function (event) {
-                    // event.stopPropagation();
-                    // event.preventDefault();
-
-                    console.log('dragLeave');
-                    this.isHoverTrue = false;
-                },
-
-                validFileType: function (fileType) {
-                    console.log(this.fileTypes.includes(fileType));
-                    return this.fileTypes.includes(fileType);
-                },
-
-                addFileSize: function (files) {
-                    for (file of files) {
-                        this.fileSize += file.size;
-                        console.log(this.fileSize);
-                    }
-                },
-
-                minusFileSize: function (files) {
-                    console.log(file.size);
-                    console.log(this.fileSize);
-
-                    for (file of files) {
-                        this.fileSize = this.fileSize - file.size;
-                    }
-
-                    console.log(this.fileSize);
-                }
-            },
-        });
-
+    <script type="text/javascript" src="{% static 'javaScript/doc_vue.js' %}" media="screen">
     </script>
 
 </body>
