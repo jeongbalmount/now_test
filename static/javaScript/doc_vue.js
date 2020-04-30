@@ -32,10 +32,13 @@ var vm = new Vue({
         isURL: false,
         fileTypes: [
             'video/avi',
-            'video/flv',
-            'video/wmv',
-            'video/mov',
-            'video/mp4'
+            'video/x-flv',
+            'video/x-ms-wmv',
+            'video/quicktime', //
+            'video/mp4',
+            'video/webm',
+            'video/x-matroska',
+             'video/mpeg'//
         ],
         fileEndTypes: [
             'avi',
@@ -44,6 +47,8 @@ var vm = new Vue({
             'mov',
             'mp4',
             'webm',
+            'mkv',
+            'mpeg',
         ],
         uploadPercentage: 0,
     },
@@ -65,6 +70,7 @@ var vm = new Vue({
         verifyExtends: function (url) {
             var fileExtends = url.split(/\#|\?/)[0].split('.').pop().trim();
             console.log(fileExtends)
+            var lowerCase = fileExtends.toLowerCase()
             if (this.fileEndTypes.includes(fileExtends)) {
                 return true;
             }

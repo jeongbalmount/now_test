@@ -7,8 +7,8 @@ from .models import UploadModel, UploadURLmodel
 
 class UploadFileForm(forms.ModelForm):
     max_size = 52428800
-    videoTypes = ['video/x-m4v', 'video/x-matroska', 'video/webm', 'video/quicktime',
-                  'video/x-msvideo', 'video/x-ms-wmv', 'video/mpeg', 'video/x-flv', 'video/mp4']
+    videoTypes = ['video/avi', 'video/webm', 'video/quicktime'
+                  ,'video/x-matroska', 'video/x-ms-wmv', 'video/mpeg', 'video/x-flv', 'video/mp4']
 
     class Meta:
         model = UploadModel

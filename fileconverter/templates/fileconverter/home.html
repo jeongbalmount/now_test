@@ -22,6 +22,7 @@
 </head>
 
 <body>
+    <div class="container" style="height:80px;"></div>
     <div id="app" class="container" v-cloak>
         <div class="panel panel-default">
             <div class="panel-heading"><b>Make GIF</b></div>
@@ -29,9 +30,10 @@
                 <button type="button" class="btn btn-secondary float-right btn-circle" data-container="body"
                     data-toggle="popover" data-placement="left" title="움짤 생성기 설명"
                     data-content="<li>동시에 2개의 동영상파일까지 gif변환 가능합니다.</li>
-                    <li>총 파일 용량제한은 50MB입니다.</li>
+                    <li>동영상 파일 용량제한은 50MB입니다.</li>
                     <li>변환 가능한 파일형태는 mp4, webm, flv, avi, 등 다양한 동영상 파일 형태입니다.</li>
-                    <li>fps25는 최대 12초, fps15는 최대 20초, fps10은 최대 30초까지 변환됩니다. </li>" data-html="true">
+                    <li>fps25는 최대 12초, fps15는 최대 20초, fps10은 최대 30초까지 변환됩니다. </li>
+                    <li>해상도가 크거나 프레임이 높을수록 변환시간이 오래 걸릴 수 있습니다.</li>" data-html="true">
                     i
                 </button>
                 <h3>움짤 생성기</h3>
@@ -88,6 +90,7 @@
                         v-on:click="uploadFiles()">업로드</button>
                     <button v-if="converted.nowLoading" class="btn btn-success" type="button" disabled>
                         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <p>변환 중입니다. 해상도가 크고 fps가 높을수록 시간이 오래 걸릴 수 있습니다.</p>
                     </button>
                     <button v-if="converted.loadingDone" class="btn btn-success" type="button" disabled>변환완료</button>
                 </div>
