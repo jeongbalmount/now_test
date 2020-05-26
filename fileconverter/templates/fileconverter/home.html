@@ -8,8 +8,6 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
         integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
     <link rel="stylesheet" href="{% static 'CSS/style.css' %}" media="screen">
-    <script src='https://unpkg.com/vue/dist/vue.min.js'></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
         integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
         crossorigin="anonymous"></script>
@@ -28,12 +26,13 @@
             <div class="panel-heading"><b>Make GIF</b></div>
             <div class="panel-body">
                 <button type="button" class="btn btn-secondary float-right btn-circle" data-container="body"
-                    data-toggle="popover" data-placement="left" title="움짤 생성기 설명"
-                    data-content="<li>동시에 2개의 동영상파일까지 gif변환 가능합니다.</li>
+                    data-toggle="popover" data-placement="left" title="움짤 생성기 설명" data-content="<li>동시에 2개의 동영상파일까지 gif변환 가능합니다.</li>
                     <li>동영상 파일 용량제한은 50MB입니다.</li>
                     <li>변환 가능한 파일형태는 mp4, webm, flv, avi, 등 다양한 동영상 파일 형태입니다.</li>
                     <li>fps25는 최대 12초, fps15는 최대 20초, fps10은 최대 30초까지 변환됩니다. </li>
-                    <li>해상도가 크거나 프레임이 높을수록 변환시간이 오래 걸릴 수 있습니다.</li>" data-html="true">
+                    <li>해상도가 크거나 프레임이 높을수록 변환시간이 오래 걸릴 수 있습니다.</li>
+                    <li>시작 시간과 끝나는 시간은 소수점 두번째 자리까지 설정 가능합니다.</li>" 
+                    data-html="true">
                     i
                 </button>
                 <h3>움짤 생성기</h3>
@@ -54,8 +53,77 @@
                 </div>
                 <br>
                 <input class="form-control" :class="{' disappear' : isSelectTrue}" type="text" v-model="inputURL"
-                    placeholder="동영상 URL입력">
-                <br>
+                    placeholder="동영상 URL입력" v-if="isURL_converted == false">
+                <!-- URLModalButton -->
+                <button type="button" class="btn btn-secondary" :class="{' disappear' : isSelectTrue}" data-toggle="modal"
+                    data-target="#URL_fileModal" v-if="isURL_converted == false">
+                    URL동영상 변환움짤 설정
+                </button>
+                <div class="alert alert-success" role="alert" :class="{' disappear' : isSelectTrue}"
+                    v-if="URL_showData && isURL_converted == false">
+                    fps: <strong>[[ URL_settings.URL_fpsValue ]]</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>해상도: [[ URL_settings.URL_scaleValue_select ]]</strong><br>시작시간: 
+                    <strong>[[ URL_settings.URL_start ]]</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;끝나는시간: <strong>[[ URL_settings.URL_end ]]</strong>
+                </div>
+                <!-- URLModal -->
+                <div class="modal fade" id="URL_fileModal" tabindex="-1" role="dialog"
+                    aria-labelledby="exampleModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLabel">URL동영상 변환움짤 설정</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                                    v-on:click="URL_close_function()">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <label for="URL_fps">fps설정</label>
+                                <div class="input-group mb-2">
+                                    <select class="custom-select" id="URL_fps" v-model="URL_settings.URL_fpsValue">
+                                        <option value="15">15fps</option>
+                                        <option value="25">25fps</option>
+                                        <option value="10">10fps</option>
+                                    </select>
+                                </div>
+                                <br>
+                                <label for="URL_scale">해상도 설정(나머지 가로세로 길이는 동영상 해상도에 맞춰 설정됩니다)</label>
+                                <div class="input-group mb-2">
+                                    <select class="custom-select" id="URL_scale"
+                                        v-model="URL_settings.URL_scaleValue_select">
+                                        <option value="변환할 동영상 해상도(기본)">변환할 동영상 해상도(기본)</option>
+                                        <option value="가로:600px">가로:600px</option>
+                                        <option value="가로:480px">가로:480px</option>
+                                        <option value="세로:480px">세로:480px</option>
+                                        <option value="세로:320px">세로:320px</option>
+                                    </select>
+                                </div>
+                                <br>
+                                <label for="URL_start">움짤 시작시간 설정</label>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="URL_start">시작 시간</span>
+                                    </div>
+                                    <input type="text" class="form-control" id="basic-url" aria-describedby="URL_start"
+                                        v-model="URL_settings.URL_start" placeholder="움짤 시작시간">
+                                </div>
+                                <label for="URL_end">움짤 끝나는시간 설정</label>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="URL_end">끝나는 시간</span>
+                                    </div>
+                                    <input type="text" class="form-control" id="basic-url" aria-describedby="URL_end"
+                                        v-model="URL_settings.URL_end" placeholder="움짤 끝나는 시간">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal"
+                                    v-on:click="URL_close_function()">닫기</button>
+                                <button type="button" class="btn btn-primary" data-dismiss="modal"
+                                    v-on:click="URL_save_change()">설정저장하기</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <ol class="fileNames" style="list-style: none; padding-left:0px;">
                     <li v-for="(namecheck, index) in fileNamesWithCheck">
                         <div v-if="namecheck.fileName != 'default'" class="p-3 mb-2 bg-light text-dark">
@@ -66,28 +134,154 @@
                                 <span v-else aria-hidden="true" v-on:click="remove_todo(index)">&times;</span>
                             </button>
                         </div>
-                        <div class="input-group mb-2" v-if="index==0 && namecheck.fileUploaded == false">
-                            <select class="custom-select" id="inputGroupSelect02" v-model="fpsValue_1">
-                                <option value="15">15fps</option>
-                                <option value="25">25fps</option>
-                                <option value="10">10fps</option>
-                            </select>
+                        <!-- ModalButton1 -->
+                        <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#firstFile_modal"
+                            v-if="index==0 && namecheck.fileUploaded == false">
+                            동영상1 변환움짤 설정
+                        </button>
+                        <div class="alert alert-success" role="alert" v-if="index==0 && namecheck.fileUploaded == false && firstFile_showData">
+                            fps: <strong>[[ firstFile_settings.fpsValue_1 ]]</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;해상도: <strong>[[ firstFile_settings.scaleValue_select_1 ]]</strong><br>
+                            시작시간: <strong>[[ firstFile_settings.start_1 ]]</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;끝나는시간: <strong>[[ firstFile_settings.end_1 ]]</strong>
                         </div>
-                        <div class="input-group mb-2" v-if="index==1">
-                            <select class="custom-select" id="inputGroupSelect02" v-model="fpsValue_2">
-                                <option value="15">15fps</option>
-                                <option value="25">25fps</option>
-                                <option value="10">10fps</option>
-                            </select>
+                        <!-- Modal1 -->
+                        <div class="modal fade" id="firstFile_modal" tabindex="-1" role="dialog"
+                            aria-labelledby="exampleModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="exampleModalLabel">동영상1 변환움짤 설정</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                                            v-on:click="firstFile_close_function()">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <label for="firstFile_fps">fps설정</label>
+                                        <div class="input-group mb-2">
+                                            <select class="custom-select" id="firstFile_fps"
+                                                v-model="firstFile_settings.fpsValue_1">
+                                                <option value="15">15fps</option>
+                                                <option value="25">25fps</option>
+                                                <option value="10">10fps</option>
+                                            </select>
+                                        </div>
+                                        <br>
+                                        <label for="firstFile_scale">해상도 설정(나머지 가로세로 길이는 동영상 해상도에 맞춰 설정됩니다)</label>
+                                        <div class="input-group mb-2">
+                                            <select class="custom-select" id="firstFile_scale"
+                                                v-model="firstFile_settings.scaleValue_select_1">
+                                                <option value="변환할 동영상 해상도(기본)">변환할 동영상 해상도(기본)</option>
+                                                <option value="가로:600px">가로:600px</option>
+                                                <option value="가로:480px">가로:480px</option>
+                                                <option value="세로:480px">세로:480px</option>
+                                                <option value="세로:320px">세로:320px</option>
+                                            </select>
+                                        </div>
+                                        <br>
+                                        <label for="firstFile_start">움짤 시작시간 설정</label>
+                                        <div class="input-group mb-3">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text" id="firstFile_start">시작 시간</span>
+                                            </div>
+                                            <input type="text" class="form-control" id="firstFile_start"
+                                                aria-describedby="basic-addon3" v-model="firstFile_settings.start_1">
+                                        </div>
+                                        <label for="firstFile_end">움짤 끝나는시간 설정</label>
+                                        <div class="input-group mb-3">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text" id="firstFile_end">끝나는 시간</span>
+                                            </div>
+                                            <input type="text" class="form-control" id="firstFile_end"
+                                                aria-describedby="basic-addon3" v-model="firstFile_settings.end_1">
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal"
+                                            v-on:click="firstFile_close_function()">닫기</button>
+                                        <button type="button" class="btn btn-primary" data-dismiss="modal"
+                                            v-on:click="firstFile_save_change()">설정 저장하기</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- ModalButton2 -->
+                        <button type="button" class="btn btn-secondary" data-toggle="modal"
+                            data-target="#secondFile_modal" v-if="index==1 && namecheck.fileUploaded == false">
+                            동영상2 변환움짤 설정
+                        </button>
+                        <div class="alert alert-success" role="alert" v-if="index==1 && namecheck.fileUploaded == false && secondFile_showData">
+                            fps: <strong>[[ secondFile_settings.fpsValue_2 ]]</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;해상도: <strong>[[ secondFile_settings.scaleValue_select_2 ]]</strong><br>
+                            시작시간: <strong>[[ secondFile_settings.start_2 ]]</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;끝나는시간: <strong>[[ secondFile_settings.end_2 ]]</strong>
+                        </div>
+                        <!-- Modal2 -->
+                        <div class="modal fade" id="secondFile_modal" tabindex="-1" role="dialog"
+                            aria-labelledby="exampleModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="exampleModalLabel">동영상2 변환움짤 설정</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <label for="secondFile_fps">fps설정</label>
+                                        <div class="input-group mb-2">
+                                            <select class="custom-select" id="secondFile_fps"
+                                                v-model="secondFile_settings.fpsValue_2">
+                                                <option value="15">15fps</option>
+                                                <option value="25">25fps</option>
+                                                <option value="10">10fps</option>
+                                            </select>
+                                        </div>
+                                        <br>
+                                        <label for="secondFile_scale">해상도 설정(나머지 가로세로 길이는 동영상 해상도에 맞춰 설정됩니다)</label>
+                                        <div class="input-group mb-2">
+                                            <select class="custom-select" id="secondFile_scale"
+                                                v-model="secondFile_settings.scaleValue_select_2">
+                                                <option value="변환할 동영상 해상도(기본)">변환할 동영상 해상도(기본)</option>
+                                                <option value="가로:600px">가로:600px</option>
+                                                <option value="가로:480px">가로:480px</option>
+                                                <option value="세로:480px">세로:480px</option>
+                                                <option value="세로:320px">세로:320px</option>
+                                            </select>
+                                        </div>
+                                        <br>
+                                        <label for="secondFile_start">움짤 시작시간 설정</label>
+                                        <div class="input-group mb-3">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text" id="secondFile_start">시작 시간</span>
+                                            </div>
+                                            <input type="text" class="form-control" id="secondFile_start"
+                                                aria-describedby="basic-addon3" v-model="secondFile_settings.start_2">
+                                        </div>
+                                        <label for="secondFile_end">움짤 끝나는시간 설정</label>
+                                        <div class="input-group mb-3">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text" id="secondFile_end">끝나는 시간</span>
+                                            </div>
+                                            <input type="text" class="form-control" id="secondFile_end"
+                                                aria-describedby="basic-addon3" v-model="secondFile_settings.end_2">
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal"
+                                            v-on:click="secondFile_close_function()">닫기</button>
+                                        <button type="button" class="btn btn-primary" data-dismiss="modal"
+                                            v-on:click="secondFile_save_change()">설정 저장하기</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </li>
+                    <br>
                     <li v-if="fileSizeCheck">
                         <p>총 파일 크기: [[ returnedFileSize(fileSize) ]]</p>
                     </li>
                 </ol>
                 <div v-for="(converted, index) in forConvertButton" class="buttons">
                     <button v-if="converted.checkConverted==false" type="submit" class="btn btn-success"
-                        v-on:click="uploadFiles()">업로드</button>
+                        v-on:click="uploadFiles()">변환하기</button>
                     <button v-if="converted.nowLoading" class="btn btn-success" type="button" disabled>
                         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                         <p>변환 중입니다. 해상도가 크고 fps가 높을수록 시간이 오래 걸릴 수 있습니다.</p>
@@ -97,9 +291,526 @@
             </div>
         </div>
     </div>
-    <script type="text/javascript" src="{% static 'javaScript/doc_vue.js' %}" media="screen">
-    </script>
-
 </body>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src='https://unpkg.com/vue/dist/vue.min.js'></script>
+<!-- <script type="text/javascript" src="{% static 'javaScript/doc_vue.js' %}" media="screen"> -->
+<!-- </script> -->
+<script>
+    $(document).ready(function () {
+        $('[data-toggle="popover"]').popover();
+    });
+    axios.defaults.xsrfCookieName = 'csrftoken';
+    axios.defaults.xsrfHeaderName = 'x-CSRFToken';
+    vars = input = document.querySelector('input');
+    input.style.opacity = 0;
+
+    var vm = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            limitSize: 52428800,
+            isHoverTrue: false,
+            isSelectTrue: false,
+            fileSize: 0,
+            fileList: [],
+            URL_settings: {
+                URL_fpsValue: 15,
+                URL_scaleValue_select: "변환할 동영상 해상도(기본)",
+                URL_start: "0",
+                URL_end: "동영상 끝나는 시간",
+            },
+            firstFile_settings: {
+                fpsValue_1: 15,
+                scaleValue_select_1: "변환할 동영상 해상도(기본)",
+                start_1: "0",
+                end_1: "동영상 끝나는 시간",
+            },
+            secondFile_settings: {
+                fpsValue_2: 15,
+                scaleValue_select_2: "변환할 동영상 해상도(기본)",
+                start_2: "0",
+                end_2: "동영상 끝나는 시간",
+            },
+            URL_showData: false,
+            firstFile_showData: false,
+            secondFile_showData: false,
+            // 0값일때 원래 동영상 크기로 변환
+            convertedFileUrl: [],
+            fileNamesWithCheck: [
+            ],
+            forConvertButton: [
+                {
+                    checkConverted: false,
+                    nowLoading: false,
+                    loadingDone: false,
+                }
+            ],
+            fileSizeCheck: false,
+            inputURL: '',
+            isURL_converted: false,
+            fileTypes: [
+                'video/avi',
+                'video/x-flv',
+                'video/x-ms-wmv',
+                'video/quicktime', //
+                'video/mp4',
+                'video/webm',
+                'video/x-matroska',
+                'video/mpeg'//
+            ],
+            fileEndTypes: [
+                'avi',
+                'flv',
+                'wmv',
+                'mov',
+                'mp4',
+                'webm',
+                'mkv',
+                'mpeg',
+            ],
+        },
+        mounted() {
+            this.cached_data_URL = Object.assign({}, this.URL_settings);
+            this.cached_data_1 = Object.assign({}, this.firstFile_settings);
+            this.cached_data_2 = Object.assign({}, this.secondFile_settings);
+        },
+        methods: {
+            URL_save_change: function () {
+                this.cached_data_URL = Object.assign({}, this.URL_settings);
+                this.URL_showData = true;
+            },
+            URL_close_function: function () {
+                this.URL_settings = Object.assign({}, this.cached_data_URL);
+            },
+            firstFile_save_change: function () {
+                this.cached_data_1 = Object.assign({}, this.firstFile_settings);
+                this.firstFile_showData = true;
+            },
+            firstFile_close_function: function () {
+                this.firstFile_settings = Object.assign({}, this.cached_data_1);
+            },
+            secondFile_save_change: function () {
+                this.cached_data_2 = Object.assign({}, this.secondFile_settings);
+                this.secondFile_showData = true;
+            },
+            secondFile_close_function: function () {
+                this.secondFile_settings = Object.assign({}, this.cached_data_2);
+            },
+
+            // 기본적인 url인지 확인
+            verifyURL: function (checkURL) {
+                console.log("verifyURL");
+                var url = checkURL;
+                var pattern = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/;
+                var fileExtend = this.verifyExtends(url);
+                console.log(fileExtend);
+                if (pattern.test(url) && fileExtend) {
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            verifyExtends: function (url) {
+                var fileExtends = url.split(/\#|\?/)[0].split('.').pop().trim();
+                console.log(fileExtends)
+                var lowerCase = fileExtends.toLowerCase()
+                if (this.fileEndTypes.includes(fileExtends)) {
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            },
+
+            isNumber: function(input_value){
+                return isNaN(input_value);
+            },
+
+            make_float: function(input_value){
+                return Number(input_value).toFixed(2);
+            },
+
+            uploadFiles: function () {
+                var vm = this;
+                var verifiedURL;
+
+                if (vm.inputURL !== '') {
+                    verifiedURL = this.verifyURL(this.inputURL);
+                    if (verifiedURL === false) {
+                        alert("Url형식이 아닙니다");
+                        return;
+                    }
+                    this.isHoverTrue = true;
+                }
+                if (vm.fileList.length === 0 && verifiedURL !== true) {
+                    alert("파일이나 파일URL을 추가해 주세요")
+                    return;
+                }
+
+                if (vm.fileList.length > 0) {
+                    var form_files = new FormData();
+                    if (vm.fileList.length === 1) {
+                        if (vm.firstFile_settings.end_1 !== "동영상 끝나는 시간"){
+                            if(vm.isNumber(vm.firstFile_settings.start_1) || vm.isNumber(vm.firstFile_settings.end_1)){
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            }
+                            if (vm.firstFile_settings.start_1 > vm.firstFile_settings.end_1){
+                                alert('시작 시간이 끝나는 시간보다 큽니다. 수정해 주세요');
+                                return;
+                            } 
+                            if (vm.firstFile_settings.end_1 == 0 ){
+                                alert('끝나는 시간을 수정해 주세요');
+                                return;
+                            }
+                            if (vm.firstFile_settings.start_1 < 0 || vm.firstFile_settings.end_1 < 0){
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            } 
+                        }else if(vm.firstFile_settings.end_1 == "동영상 끝나는 시간"){
+                            if(vm.isNumber(vm.firstFile_settings.start_1)){
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            }
+                            if (vm.firstFile_settings.start_1 < 0){
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            }
+                        }
+                        form_files.append('first_uploaded_file', vm.fileList[0]);
+                        form_files.append('scaleValue_select_1',vm.firstFile_settings.scaleValue_select_1);
+                        form_files.append('fps_value_1', vm.firstFile_settings.fpsValue_1);
+
+                        start_1_value = vm.make_float(vm.firstFile_settings.start_1);
+                        end_1_value  = vm.make_float(vm.firstFile_settings.end_1);
+                        console.log(start_1_value);
+                        console.log(end_1_value);
+                    } else {
+                        if (vm.firstFile_settings.end_1 !== "동영상 끝나는 시간" && vm.secondFile_settings.end_2 !== "동영상 끝나는 시간"){
+                            if(vm.isNumber(vm.firstFile_settings.start_1) || vm.isNumber(vm.firstFile_settings.end_1) || 
+                            vm.isNumber(vm.secondFile_settings.start_2) || vm.isNumber(vm.secondFile_settings.end_2)){
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            }
+                            if (vm.firstFile_settings.start_1 > vm.firstFile_settings.end_1 ||
+                             vm.secondFile_settings.start_2 > vm.secondFile_settings.end_2){
+                                alert('시작 시간이 끝나는 시간보다 큽니다. 수정해 주세요');
+                                return;
+                            } 
+                            if (vm.firstFile_settings.end_1 == 0 || vm.secondFile_settings.end_2 == 0){
+                                alert('끝나는 시간을 수정해 주세요');
+                                return;
+                            }
+                            if (vm.firstFile_settings.start_1 < 0 || vm.secondFile_settings.start_2 < 0
+                                || vm.isNumber(vm.firstFile_settings.end_1) < 0 || vm.isNumber(vm.secondFile_settings.end_2) < 0){
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            } 
+                        }else if(vm.firstFile_settings.end_1 == "동영상 끝나는 시간" && vm.secondFile_settings.end_2 !== "동영상 끝나는 시간"){
+                            if(vm.isNumber(vm.firstFile_settings.start_1) || vm.isNumber(vm.secondFile_settings.start_2) || vm.isNumber(vm.secondFile_settings.end_2)){
+                                console.log("123");
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            }
+                            if (vm.firstFile_settings.start_1 < 0 || vm.secondFile_settings.start_2 < 0 
+                                || vm.isNumber(vm.secondFile_settings.end_2) < 0){
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            }
+                            if (vm.secondFile_settings.start_2 > vm.secondFile_settings.end_2){
+                                alert('시작 시간이 끝나는 시간보다 큽니다. 수정해 주세요');
+                                return;
+                            } 
+                            if (vm.secondFile_settings.end_2 == 0 ){
+                                alert('끝나는 시간을 수정해 주세요');
+                                return;
+                            }
+                        
+                        }else if(vm.secondFile_settings.end_2 == "동영상 끝나는 시간" && vm.firstFile_settings.end_1 !== "동영상 끝나는 시간"){
+                            if(vm.isNumber(vm.secondFile_settings.start_2) || vm.isNumber(vm.firstFile_settings.start_1) || vm.isNumber(vm.firstFile_settings.end_1)){
+                                console.log("123");
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            }
+                            if (vm.secondFile_settings.start_2 < 0 || vm.firstFile_settings.start_1 < 0 
+                                || vm.isNumber(vm.firstFile_settings.end_1) < 0){
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            }
+                            if (vm.firstFile_settings.start_1 > vm.firstFile_settings.end_1){
+                                alert('시작 시간이 끝나는 시간보다 큽니다. 수정해 주세요');
+                                return;
+                            } 
+                            if (vm.firstFile_settings.end_1 == 0 ){
+                                alert('끝나는 시간을 수정해 주세요');
+                                return;
+                            }
+                        }else if(vm.firstFile_settings.end_1 == "동영상 끝나는 시간" && vm.secondFile_settings.end_2 == "동영상 끝나는 시간"){
+                            if(vm.isNumber(vm.firstFile_settings.start_1) || vm.isNumber(vm.secondFile_settings.start_2)){
+                                console.log(vm.isNumber(vm.firstFile_settings.start_1));
+                                console.log(vm.isNumber(vm.secondFile_settings.start_2));
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            }
+                            if (vm.firstFile_settings.start_1 < 0 || vm.secondFile_settings.start_2 < 0){
+                                alert('시작 시간을 수정해 주세요');
+                                return;
+                            }
+                        }
+
+
+                        start_1_value = vm.make_float(vm.firstFile_settings.start_1);
+                        end_1_value  = vm.make_float(vm.firstFile_settings.end_1);
+                        start_2_value = vm.make_float(vm.secondFile_settings.start_2);
+                        end_2_value  = vm.make_float(vm.secondFile_settings.end_2);
+
+                        form_files.append('first_uploaded_file', vm.fileList[0]);
+                        form_files.append('second_uploaded_file', vm.fileList[1]);
+                        form_files.append('scaleValue_select_1',vm.firstFile_settings.scaleValue_select_1);
+                        form_files.append('scaleValue_select_2',vm.secondFile_settings.scaleValue_select_2);
+                        form_files.append('fps_value_1', vm.firstFile_settings.fpsValue_1);
+                        form_files.append('fps_value_2', vm.secondFile_settings.fpsValue_2);
+
+                    }
+
+                    vm.forConvertButton[0].checkConverted = true;
+                    vm.forConvertButton[0].nowLoading = true;
+
+                    axios.post('/convert/upload/', form_files)
+                        .then(function (res) {
+                            if (vm.fileList.length === 1) {
+                                vm.fileNamesWithCheck[0].convertedFileUrl = res.data.url_one;
+                                vm.fileNamesWithCheck[0].fileUploaded = true;
+                                vm.forConvertButton[0].nowLoading = false;
+                                vm.forConvertButton[0].loadingDone = true;
+
+                            } else {
+                                vm.fileNamesWithCheck[0].convertedFileUrl = res.data.url_one;
+                                vm.fileNamesWithCheck[0].fileUploaded = true;
+
+                                vm.fileNamesWithCheck[1].convertedFileUrl = res.data.url_two;
+                                vm.fileNamesWithCheck[1].fileUploaded = true;
+
+                                vm.forConvertButton[0].nowLoading = false;
+                                vm.forConvertButton[0].loadingDone = true;
+                            }
+                            
+                            vm.forConvertButton[0].checkConverted = true;
+                            vm.fileSizeCheck = false;
+                        })
+                        .catch(function (err) {
+                            alert("새로고침 후 다시 사용해 주세요");
+                            vm.forConvertButton[0].nowLoading = false;
+                        })
+                } else {
+                    if (vm.URL_settings.URL_end !== "동영상 끝나는 시간"){
+                            if(vm.isNumber(vm.URL_settings.URL_start) || vm.isNumber(vm.URL_settings.URL_end)){
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            }
+                            if (vm.URL_settings.URL_start > vm.URL_settings.URL_end){
+                                alert('시작 시간이 끝나는 시간보다 큽니다. 수정해 주세요');
+                                return;
+                            } 
+                            if (vm.URL_settings.URL_end == 0){
+                                alert('끝나는 시간을 수정해 주세요');
+                                return;
+                            }
+                            if (vm.URL_settings.URL_start < 0 || vm.URL_settings.URL_end < 0){
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            } 
+                        }else if(vm.URL_settings.URL_end == "동영상 끝나는 시간"){
+                            if(vm.isNumber(vm.URL_settings.URL_start)){
+                                alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
+                                return;
+                            }
+                            if (vm.URL_settings.URL_start < 0){
+                                alert('시작 시간을 수정해 주세요');
+                                return;
+                            }
+                            vm.URL_settings.URL_end = -1;
+                        }
+                    
+                    URL_start_value = vm.make_float(vm.URL_settings.URL_start);
+                    URL_end_value  = vm.make_float(vm.URL_settings.URL_end);
+
+                    var sendURL = {'uploadURL': vm.inputURL,'URL_fps_value': vm.URL_settings.URL_fpsValue, 
+                    'URL_scaleValue_select': vm.URL_settings.URL_scaleValue_select, 'URL_start': URL_start_value, 'URL_end': URL_end_value};
+
+                    vm.forConvertButton[0].checkConverted = true;
+                    vm.forConvertButton[0].nowLoading = true;
+
+                    axios.post('/convert/urlupload/', sendURL)
+                        .then(function (res) {
+                            vm.fileNamesWithCheck.push({
+                                fileName: res.data.file_name,
+                                convertedFileUrl: res.data.uploaded_file_url,
+                                fileUploaded: true,
+                            });
+                            vm.isURL_converted = true;
+                            vm.forConvertButton[0].checkConverted = true;
+                            vm.forConvertButton[0].nowLoading = false;
+                            vm.forConvertButton[0].loadingDone = true;
+                            vm.fileSizeCheck = false
+                        })
+                        .catch(function (err) {
+                            alert("새로고침 후 다시 사용해 주세요");
+                            vm.forConvertButton[0].nowLoading = false;
+                        })
+                }
+            },
+
+            add_files: function (event) {
+                if (this.forConvertButton[0].checkConverted == true) {
+                    alert('새로고침 후에 사용해 주세요');
+                    return;
+                } else if (this.fileList.length == 2) {
+                    alert('파일 최대 2개까지 선택가능');
+                    return;
+                }
+
+                files = event.target.files;
+                this.addFileSize(files);
+
+                for (file of files) {
+
+                    if (!this.validFileType(file.type)) {
+                        alert("변환할 수 있는 파일이 아닙니다");
+                        this.minusFileSize(files);
+                        return;
+                    }
+                }
+                var fileCountLimit = this.fileList.length + files.length;
+
+                if (fileCountLimit > 2) {
+                    alert("파일 최대 2개까지 선택가능");
+                    this.minusFileSize(files);
+                    return;
+                } else if (this.fileSize > this.limitSize) {
+                    alert("파일 총 크기 제한 50MB");
+                    this.minusFileSize(files);
+                    return;
+                }
+
+                for (file of files) {
+                    this.fileList.push(file);
+                    this.fileNamesWithCheck.push({
+                        fileName: file.name,
+                        fileUploaded: false,
+                    });
+                }
+                this.fileSizeCheck = true;
+                this.isSelectTrue = true;
+            },
+
+            returnedFileSize: function (number) {
+                if (number < 1024) {
+                    return number + 'bytes';
+                } else if (number >= 1024 && number < 1048576) {
+                    return (number / 1024).toFixed(1) + 'KB';
+                } else if (number >= 1048576) {
+                    return (number / 1048576).toFixed(1) + 'MB';
+                }
+            },
+            remove_todo: function (index) {
+                this.fileSize -= this.fileList[index].size;
+                this.fileList.splice(index, 1);
+                this.fileNamesWithCheck.splice(index, 1);
+                if (this.fileList.length == 0) {
+                    this.isSelectTrue = false;
+                    this.fileSizeCheck = false;
+                }
+            },
+            onDrop: function (event) {
+                if (this.forConvertButton[0].checkConverted == true) {
+                    alert('새로고침 후에 사용해 주세요');
+                    this.isHoverTrue = false;
+                    return;
+                } else if (this.fileList.length == 2) {
+                    alert('파일 최대 2개까지 선택가능');
+                    this.isHoverTrue = false;
+                    return;
+                }
+                this.className += ' hovered';
+                var files = event.dataTransfer.files;
+
+                this.addFileSize(files);
+
+                for (file of files) {
+                    if (!this.validFileType(file.type)) {
+                        alert("변환할 수 있는 파일이 아닙니다");
+                        this.minusFileSize(files);
+                        this.isHoverTrue = false;
+                        return;
+                    } else if (this.fileNamesWithCheck.length != 0) {
+                        if (this.fileNamesWithCheck[0].fileName == file.name) {
+                            alert("같은 이름의 파일을 넣을 수 없습니다.");
+                            this.minusFileSize(files);
+                            this.isHoverTrue = false;
+                            return;
+                        }
+                    }
+                }
+                var fileCountLimit = this.fileList.length + files.length;
+
+                if (fileCountLimit > 2) {
+                    alert("파일 최대 2개까지 선택가능");
+                    this.minusFileSize(files);
+                    return;
+                } else if (this.fileSize > this.limitSize) {
+                    alert("파일 총 크기 제한 50MB");
+                    this.minusFileSize(files);
+                    return;
+                }
+
+
+                for (file of files) {
+                    this.fileList.push(file);
+                    this.fileNamesWithCheck.push({
+                        fileName: file.name,
+                        fileUploaded: false,
+                    });
+                }
+                this.fileSizeCheck = true;
+                this.isSelectTrue = true;
+                this.isHoverTrue = false;
+            },
+
+            onDragOver: function (event) {
+                // event.stopPropagation();
+                // event.preventDefault();
+
+                this.isHoverTrue = true;
+            },
+
+            onDragLeave: function (event) {
+                // event.stopPropagation();
+                // event.preventDefault();
+
+                this.isHoverTrue = false;
+            },
+
+            validFileType: function (fileType) {
+                return this.fileTypes.includes(fileType);
+            },
+
+            addFileSize: function (files) {
+                for (file of files) {
+                    this.fileSize += file.size;
+                }
+            },
+
+            minusFileSize: function (files) {
+
+                for (file of files) {
+                    this.fileSize = this.fileSize - file.size;
+                }
+
+            }
+        },
+    });
+</script>
 
 </html>

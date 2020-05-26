@@ -7,20 +7,26 @@ from requests import get
 class UploadModel(models.Model):
     first_uploaded_file = models.FileField(blank=False, upload_to='first/%Y/%m/%d/')
     second_uploaded_file = models.FileField(blank=True, upload_to='second/%Y/%m/%d/')
+    scaleValue_select_1 = models.CharField(blank=False, max_length=15)
+    scaleValue_select_2 = models.CharField(blank=True, null=True, max_length=15)
     fps_value_1 = models.IntegerField(blank=False)
-    fps_value_2 = models.IntegerField(blank=True)
+    fps_value_2 = models.IntegerField(blank=True, null=True)
 
 
 class UploadURLmodel(models.Model):
-    uploadURL = models.URLField(blank=False)
+    uploadURL = models.URLField(blank=False, null=False)
+    URL_fps_value = models.IntegerField(blank=False, null=False)
+    URL_scaleValue_select = models.CharField(blank=False, null=False, max_length=20)
+    URL_start = models.IntegerField(blank=False, null=False)
+    URL_end = models.IntegerField(blank=False, null=False)
     fileFromURL = models.FileField(blank=True, upload_to='urlmedia/%Y/%m/%d/')
 
     def save(self, *args, **kwargs):
         # 파일 url 받아서 파싱한 후 저장
         print("in model")
+        # super().save(*args, **kwargs)
         if self.uploadURL and not self.fileFromURL:
             print("uploadURL")
-            super().save(*args, **kwargs)
             file_url = self.uploadURL
             print(file_url)
             file_name = file_url.split('/')[-1]
