@@ -5,6 +5,7 @@ from django import forms
 from .models import UploadModel, UploadURLmodel
 
 
+# 비디오 파일 넘어 왔을때 유효성 검사
 class UploadFileForm(forms.ModelForm):
     max_size = 52428800
     videoTypes = ['video/avi', 'video/webm', 'video/quicktime'
@@ -14,104 +15,268 @@ class UploadFileForm(forms.ModelForm):
     class Meta:
         model = UploadModel
         fields = ['first_uploaded_file', 'second_uploaded_file', 'fps_value_1', 'fps_value_2',
-                  'scaleValue_select_1', 'scaleValue_select_2']
+                  'scaleValue_select_1', 'scaleValue_select_2', 'start_1', 'start_2', 'end_1', 'end_2']
 
     def clean_uploadedFiles(self):
         print("clean_uploadedFiles")
+        # cleaned_data
         first_file = self.cleaned_data['first_uploaded_file']
         second_file = self.cleaned_data['second_uploaded_file']
         scale_1 = self.cleaned_data['scaleValue_select_1']
         scale_2 = self.cleaned_data['scaleValue_select_2']
         fps_value_1 = self.cleaned_data['fps_value_1']
         fps_value_2 = self.cleaned_data['fps_value_2']
+        start_1 = self.cleaned_data['start_1']
+        start_2 = self.cleaned_data['start_2']
+        end_1 = self.cleaned_data['end_1']
+        end_2 = self.cleaned_data['end_2']
         print(fps_value_1)
         file_url_list = []
+        valid_file_boolean = True
 
+        # 한개의 파일만 들어 올때
         if first_file is not None and second_file is None:
             print("No second file")
             check_first_file = first_file.content_type
             all_file_size = first_file.size
-            if check_first_file not in self.videoTypes:
-                print('파일 형식')
-                raise forms.ValidationError('mp4와 같은 비디오 파일을 입력해 주세요')
-                # 50MB를 넘었을때
-            if scale_1 not in self.scaleTypes:
-                print('해상도 오류')
-                raise forms.ValidationError('맞는 해상도가 아닙니다')
 
+            # 시작시간, 끝나는 시간 유효성 검사
+            error_message, valid_file_boolean = valid_one_file(start_1, end_1)
+            if valid_file_boolean is False:
+                return error_message, valid_file_boolean
+
+            if check_first_file not in self.videoTypes:
+                error_message = "mp4와 같은 비디오 파일을 입력해 주세요"
+                valid_file_boolean = False
+                return error_message, valid_file_boolean
+
+            if scale_1 not in self.scaleTypes:
+                error_message = "맞는 해상도가 아닙니다"
+                valid_file_boolean = False
+                return error_message, valid_file_boolean
+
+            # 50MB를 넘었을때
             if all_file_size > self.max_size:
-                print('파일 크기')
-                raise forms.ValidationError('파일 전체 크기가 너무 큽니다.')
+                error_message = "파일 전체 크기가 너무 큽니다."
+                valid_file_boolean = False
+                return error_message, valid_file_boolean
 
             if fps_value_1 > 25:
-                print('fps 최대 크기 초과')
-                raise forms.ValidationError('fps크기 초과')
+                error_message = "fps크기 초과"
+                valid_file_boolean = False
+                return error_message, valid_file_boolean
             file_url_list.append(first_file)
 
         elif first_file is not None and second_file is not None:
             check_first_file = first_file.content_type
             check_second_file = second_file.content_type
-            print(check_first_file)
-            print(check_second_file)
             all_file_size = first_file.size + second_file.size
+
+            error_message, valid_file_boolean = valid_two_files(start_1, start_2, end_1, end_2)
+
+
             # 비디오 파일이 아닐시
             if check_first_file not in self.videoTypes or check_second_file not in self.videoTypes:
-                print('파일 형식')
-                raise forms.ValidationError('mp4와 같은 비디오 파일을 입력해 주세요')
+                error_message = "mp4와 같은 비디오 파일을 입력해 주세요"
+                valid_file_boolean = False
+                return error_message, valid_file_boolean
 
             if scale_1 not in self.scaleTypes or scale_2 not in self.scaleTypes:
-                print('해상도 오류')
-                raise forms.ValidationError('맞는 해상도가 아닙니다')
+                error_message = "맞는 해상도가 아닙니다"
+                valid_file_boolean = False
+                return error_message, valid_file_boolean
 
             if all_file_size > self.max_size:
-                print('파일 크기')
-                raise forms.ValidationError('파일 전체 크기가 너무 큽니다.')
+                error_message = "파일 전체 크기가 너무 큽니다"
+                valid_file_boolean = False
+                return error_message, valid_file_boolean
 
             if fps_value_1 > 25 or fps_value_2 > 25:
-                print('fps 최대 크기 초과')
-                raise forms.ValidationError('fps크기 초과')
+                error_message = "fps크기 초과"
+                valid_file_boolean = False
+                return error_message, valid_file_boolean
             file_url_list.append(first_file)
             file_url_list.append(second_file)
 
-        return file_url_list
+        return file_url_list, valid_file_boolean
 
 
+# URL로 받았을때
 class UploadURLForm(forms.ModelForm):
     videoTypes = ['avi', 'flv', 'wmv', 'mov', 'mp4', 'webm', 'mkv', 'mpeg']
     scaleTypes = ["변환할 동영상 해상도(기본)", "가로:600px", "가로:480px", "세로:480px", "세로:320px"]
 
     class Meta:
         model = UploadURLmodel
-        fields = ['URL_scaleValue_select', 'URL_fps_value', 'uploadURL', 'URL_start', 'URL_end']
+        fields = ['URL_end', 'URL_start', 'URL_scaleValue_select', 'URL_fps_value', 'uploadURL']
 
     def clean_uploadURL(self):
         print("this is form")
         uploadURL = self.cleaned_data['uploadURL']
-        print(uploadURL)
         file_scale_value = self.cleaned_data['URL_scaleValue_select']
-        print(file_scale_value)
         file_fps = self.cleaned_data['URL_fps_value']
-        print(file_fps)
+        file_start = self.cleaned_data['URL_start']
+        file_end = self.cleaned_data['URL_end']
         # 파일 url 받아서 파싱한 후 저장
         file_url = uploadURL
         furl, file_extension = path.splitext(file_url)
+
+        # 시작시간, 끝나는 시간 유효성 검사
+        error_message, valid_file_boolean = valid_one_file(file_start, file_end)
+        if valid_file_boolean is False:
+            return error_message, valid_file_boolean
+
         if URLValidator(file_url) is False and file_extension not in self.videoTypes:
-            print("raised")
-            raise forms.ValidationError('정확한 url형식을 적어주세요')
+            error_message = "정확한 url형식을 적어주세요"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
 
         if file_fps > 25:
             print('fps 최대 크기 초과')
-            raise forms.ValidationError('fps크기 초과')
+            error_message = "fps 최대 크기 초과"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
 
         if file_scale_value not in self.scaleTypes:
             print('해상도 오류')
-            raise forms.ValidationError('맞는 해상도가 아닙니다')
+            error_message = "해상도 오류"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
 
         print("before return")
         return uploadURL
 
 
+def isfloat_and_int(input_value):
+    if type(input_value) is float or type(input_value) is int:
+        return True
+    else:
+        return False
 
 
+def valid_one_file(input_start, input_end):
+    error_message = "없습니다"
+    valid_file_boolean = True
+
+    if input_end is not -1:
+        if input_start > input_end:
+            error_message = "끝나는 시간은 시작시간보다 커야 합니다"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+
+        if input_end == 0:
+            error_message = "끝나는 시간이 0입니다."
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+
+        if input_start < 0 or input_end < 0:
+            error_message = "시간은 0보다 커야합니다."
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+
+        if isfloat_and_int(input_start) is False or isfloat_and_int(input_end) is False:
+            error_message = "소수점 2번째 까지의 수를 적어주세요"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+
+    elif input_end is not -1:
+        if input_start < 0:
+            error_message = "소수점 2번째 까지의 수를 적어주세요"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+
+        if isfloat_and_int(input_start) is False:
+            error_message = "소수점 2번째 까지의 수를 적어주세요"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+
+    return error_message, valid_file_boolean
 
 
+# 비디오 파일이 2개 들어왔을때 2개에 대한 시작시간 끝나는 시간 유효성 검사
+def valid_two_files(input_start_1, input_start_2, input_end_1, input_end_2):
+    error_message = "없습니다"
+    valid_file_boolean = True
+    if input_end_1 is not -1 and input_end_2 is not -1:
+        if isfloat_and_int(input_start_1) is False or isfloat_and_int(input_end_1) is False:
+            error_message = "0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다)."
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+        if isfloat_and_int(input_start_2) is False or isfloat_and_int(input_end_2) is False:
+            error_message = "0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다)."
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+
+        if input_start_1 > input_end_1:
+            error_message = "시작 시간이 끝나는 시간보다 큽니다. 수정해 주세요"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+        if input_start_2 > input_end_2:
+            error_message = "시작 시간이 끝나는 시간보다 큽니다. 수정해 주세요"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+
+        if input_end_1 is 0 or input_end_2 is 0:
+            error_message = "끝나는 시간을 수정해 주세요"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+
+        if input_start_1 < 0 or input_start_2 < 0:
+            error_message = "0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다)."
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+
+        if input_end_1 < 0 or input_end_2 < 0:
+            error_message = "0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다)."
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+
+    elif input_end_1 is -1 and input_end_2 is not -1:
+        if isfloat_and_int(input_start_1) is False or isfloat_and_int(input_end_2) \
+                is False or isfloat_and_int(input_start_2) is False:
+            error_message = "0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다)."
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+        if isfloat_and_int(input_start_1) < 0 or isfloat_and_int(input_end_2) < 0 or isfloat_and_int(input_start_2) < 0:
+            error_message = "0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다)."
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+        if input_start_2 > input_end_2:
+            error_message = "시작 시간이 끝나는 시간보다 큽니다. 수정해 주세요"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+        if input_end_2 == 0:
+            error_message = "끝나는 시간을 수정해 주세요"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+
+    elif input_end_1 is not -1 and input_end_2 is -1:
+        if isfloat_and_int(input_start_1) is False or isfloat_and_int(input_end_1) is False \
+                or isfloat_and_int(input_start_2) is False:
+            error_message = "0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다)."
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+        if isfloat_and_int(input_start_1) < 0 or isfloat_and_int(input_end_1) < 0 or isfloat_and_int(
+            input_start_2) < 0:
+            error_message = "0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다)."
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+        if input_start_1 > input_end_1:
+            error_message = "시작 시간이 끝나는 시간보다 큽니다. 수정해 주세요"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+        if input_end_1 == 0:
+            error_message = "끝나는 시간을 수정해 주세요"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+    elif input_end_1 is -1 and input_end_2 is -1:
+        if isfloat_and_int(input_start_1) is False or isfloat_and_int(input_start_2) is False:
+            error_message = "0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다)."
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+        if isfloat_and_int(input_start_1) < 0 or isfloat_and_int(input_start_2) <0:
+            error_message = "시작 시간을 수정해 주세요"
+            valid_file_boolean = False
+            return error_message, valid_file_boolean
+
+    return error_message, valid_file_boolean

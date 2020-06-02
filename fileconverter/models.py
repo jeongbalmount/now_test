@@ -11,6 +11,10 @@ class UploadModel(models.Model):
     scaleValue_select_2 = models.CharField(blank=True, null=True, max_length=15)
     fps_value_1 = models.IntegerField(blank=False)
     fps_value_2 = models.IntegerField(blank=True, null=True)
+    start_1 = models.IntegerField(blank=False, null=False)
+    start_2 = models.IntegerField(blank=True, null=True)
+    end_1 = models.IntegerField(blank=False, null=False)
+    end_2 = models.IntegerField(blank=True, null=True)
 
 
 class UploadURLmodel(models.Model):
@@ -21,6 +25,7 @@ class UploadURLmodel(models.Model):
     URL_end = models.IntegerField(blank=False, null=False)
     fileFromURL = models.FileField(blank=True, upload_to='urlmedia/%Y/%m/%d/')
 
+    # url이 넘어 왔을때 url에 해당하는 비디오파일 추춣 후 저장하기
     def save(self, *args, **kwargs):
         # 파일 url 받아서 파싱한 후 저장
         print("in model")
@@ -45,9 +50,6 @@ class UploadURLmodel(models.Model):
             print("return from save")
             print(self.fileFromURL.name + " url이름")
             return self.fileFromURL.name
-
-        # print("else")
-        # super().save(*args, **kwargs)
 
     def __str__(self):
         return self.fileFromURL.name
