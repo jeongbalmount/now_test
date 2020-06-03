@@ -11,18 +11,18 @@ class UploadModel(models.Model):
     scaleValue_select_2 = models.CharField(blank=True, null=True, max_length=15)
     fps_value_1 = models.IntegerField(blank=False)
     fps_value_2 = models.IntegerField(blank=True, null=True)
-    start_1 = models.IntegerField(blank=False, null=False)
-    start_2 = models.IntegerField(blank=True, null=True)
-    end_1 = models.IntegerField(blank=False, null=False)
-    end_2 = models.IntegerField(blank=True, null=True)
+    start_1 = models.FloatField(blank=False, null=False)
+    start_2 = models.FloatField(blank=True, null=True)
+    end_1 = models.FloatField(blank=False, null=False)
+    end_2 = models.FloatField(blank=True, null=True)
 
 
 class UploadURLmodel(models.Model):
     uploadURL = models.URLField(blank=False, null=False)
     URL_fps_value = models.IntegerField(blank=False, null=False)
     URL_scaleValue_select = models.CharField(blank=False, null=False, max_length=20)
-    URL_start = models.IntegerField(blank=False, null=False)
-    URL_end = models.IntegerField(blank=False, null=False)
+    URL_start = models.FloatField(blank=False, null=False)
+    URL_end = models.FloatField(blank=False, null=False)
     fileFromURL = models.FileField(blank=True, upload_to='urlmedia/%Y/%m/%d/')
 
     # url이 넘어 왔을때 url에 해당하는 비디오파일 추춣 후 저장하기

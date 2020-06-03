@@ -500,7 +500,7 @@
                                 alert('0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다).');
                                 return;
                             }
-                            vm.firstFile_settings.end_1 = -1;
+                            vm.firstFile_settings.end_1  = -1.0;
                         }
                         
                         start_1_value = vm.make_float(vm.firstFile_settings.start_1);
@@ -567,7 +567,7 @@
                                 return;
                             }
                             
-                            vm.firstFile_settings.end_1 = -1;
+                            vm.firstFile_settings.end_1 = -1.0;
 
                         }else if(vm.secondFile_settings.end_2 == "동영상 끝나는 시간" && vm.firstFile_settings.end_1 !== "동영상 끝나는 시간"){
                             if(vm.isNumber(vm.secondFile_settings.start_2) || vm.isNumber(vm.firstFile_settings.start_1) || vm.isNumber(vm.firstFile_settings.end_1)){
@@ -589,7 +589,7 @@
                                 return;
                             }
 
-                            vm.secondFile_settings.end_2 = -1;
+                            vm.secondFile_settings.end_2  = -1.0;
 
                         }else if(vm.firstFile_settings.end_1 == "동영상 끝나는 시간" && vm.secondFile_settings.end_2 == "동영상 끝나는 시간"){
                             if(vm.isNumber(vm.firstFile_settings.start_1) || vm.isNumber(vm.secondFile_settings.start_2)){
@@ -603,8 +603,8 @@
                                 return;
                             }
 
-                            vm.firstFile_settings.end_1 = -1;
-                            vm.secondFile_settings.end_2 = -1;
+                            vm.firstFile_settings.end_1 = -1.0;
+                            vm.secondFile_settings.end_2 = -1.0;
 
                         }
 
@@ -692,7 +692,7 @@
                                 alert('시작 시간을 수정해 주세요');
                                 return;
                             }
-                            vm.URL_settings.URL_end = -1;
+                            vm.URL_settings.URL_end  = -1.0;
                         }
                     
                     URL_start_value = vm.make_float(vm.URL_settings.URL_start);

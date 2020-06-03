@@ -1,3 +1,4 @@
+import math
 from os import path
 from django.core.validators import URLValidator
 from django import forms
@@ -157,8 +158,9 @@ def isfloat_and_int(input_value):
 def valid_one_file(input_start, input_end):
     error_message = "없습니다"
     valid_file_boolean = True
+    input_end_isdefault = math.isclose(input_end, -1.0)
 
-    if input_end is not -1:
+    if input_end_isdefault is False:
         if input_start > input_end:
             error_message = "끝나는 시간은 시작시간보다 커야 합니다"
             valid_file_boolean = False
@@ -179,7 +181,7 @@ def valid_one_file(input_start, input_end):
             valid_file_boolean = False
             return error_message, valid_file_boolean
 
-    elif input_end is not -1:
+    elif input_end_isdefault is False:
         if input_start < 0:
             error_message = "소수점 2번째 까지의 수를 적어주세요"
             valid_file_boolean = False
@@ -195,9 +197,12 @@ def valid_one_file(input_start, input_end):
 
 # 비디오 파일이 2개 들어왔을때 2개에 대한 시작시간 끝나는 시간 유효성 검사
 def valid_two_files(input_start_1, input_start_2, input_end_1, input_end_2):
+    input_end_1_isdefault = math.isclose(input_end_1, -1.0)
+    input_end_2_isdefault = math.isclose(input_end_2, -1.0)
+
     error_message = "없습니다"
     valid_file_boolean = True
-    if input_end_1 is not -1 and input_end_2 is not -1:
+    if input_end_1_isdefault is False and input_end_2_isdefault is False:
         if isfloat_and_int(input_start_1) is False or isfloat_and_int(input_end_1) is False:
             error_message = "0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다)."
             valid_file_boolean = False
@@ -231,7 +236,7 @@ def valid_two_files(input_start_1, input_start_2, input_end_1, input_end_2):
             valid_file_boolean = False
             return error_message, valid_file_boolean
 
-    elif input_end_1 is -1 and input_end_2 is not -1:
+    elif input_end_1_isdefault is True and input_end_2_isdefault is False:
         if isfloat_and_int(input_start_1) is False or isfloat_and_int(input_end_2) \
                 is False or isfloat_and_int(input_start_2) is False:
             error_message = "0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다)."
@@ -250,7 +255,7 @@ def valid_two_files(input_start_1, input_start_2, input_end_1, input_end_2):
             valid_file_boolean = False
             return error_message, valid_file_boolean
 
-    elif input_end_1 is not -1 and input_end_2 is -1:
+    elif input_end_1_isdefault is False and input_end_2_isdefault is True:
         if isfloat_and_int(input_start_1) is False or isfloat_and_int(input_end_1) is False \
                 or isfloat_and_int(input_start_2) is False:
             error_message = "0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다)."
@@ -269,12 +274,12 @@ def valid_two_files(input_start_1, input_start_2, input_end_1, input_end_2):
             error_message = "끝나는 시간을 수정해 주세요"
             valid_file_boolean = False
             return error_message, valid_file_boolean
-    elif input_end_1 is -1 and input_end_2 is -1:
+    elif input_end_1_isdefault is True and input_end_2_isdefault is True:
         if isfloat_and_int(input_start_1) is False or isfloat_and_int(input_start_2) is False:
             error_message = "0이상의 수를 적어주세요(소수점 2자리까지 설정됩니다)."
             valid_file_boolean = False
             return error_message, valid_file_boolean
-        if isfloat_and_int(input_start_1) < 0 or isfloat_and_int(input_start_2) <0:
+        if isfloat_and_int(input_start_1) < 0 or isfloat_and_int(input_start_2) < 0:
             error_message = "시작 시간을 수정해 주세요"
             valid_file_boolean = False
             return error_message, valid_file_boolean

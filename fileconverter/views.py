@@ -1,4 +1,6 @@
 import json
+import math
+
 import ffmpeg
 import random
 import string
@@ -49,8 +51,6 @@ def fileUpload(request):
                 scale_1 = form.cleaned_data['scaleValue_select_1']
                 start_1 = form.cleaned_data['start_1']
                 end_1 = form.cleaned_data['end_1']
-                # 리스케일값 유효성 검사
-                width_1, height_1 = define_scale(scale_1)
                 # 저장한 폼데이터 값 중 비디오 url가져오기
                 first_url = form_save.first_uploaded_file
                 # file_one_names = first_url.name
@@ -59,6 +59,8 @@ def fileUpload(request):
                                + settings.AWS_CLOUDFRONT_DOMAIN
                                + '/media/'
                                + first_url.name)
+                # 리스케일값 유효성 검사
+                width_1, height_1 = define_scale(scale_1, s3_file_url)
                 # 시작 시간, 끝나는 시간 유효성 검사
                 start_end_valid, message_or_end = validate_start_end_time(s3_file_url, start_1, end_1)
                 # 틀리면 오류 메시지 리턴
@@ -77,8 +79,6 @@ def fileUpload(request):
                 fps_value_2 = form.cleaned_data['fps_value_2']
                 scale_1 = form.cleaned_data['scaleValue_select_1']
                 scale_2 = form.cleaned_data['scaleValue_select_2']
-                width_1, height_1 = define_scale(scale_1)
-                width_2, height_2 = define_scale(scale_2)
                 start_1 = form.cleaned_data['start_1']
                 end_1 = form.cleaned_data['end_1']
                 start_2 = form.cleaned_data['start_2']
@@ -93,6 +93,8 @@ def fileUpload(request):
                                       + settings.AWS_CLOUDFRONT_DOMAIN
                                       + '/media/'
                                       + second_url.name)
+                width_1, height_1 = define_scale(scale_1, s3_file_url_first)
+                width_2, height_2 = define_scale(scale_2, s3_file_url_second)
                 start_end_valid_1, message_or_end_1 = validate_start_end_time(s3_file_url_first, start_1, end_1)
                 start_end_valid_2, message_or_end_2 = validate_start_end_time(s3_file_url_second, start_2, end_2)
                 if start_end_valid_1 is False or start_end_valid_2 is False:
@@ -132,7 +134,7 @@ def URLupload(request):
                            + settings.AWS_CLOUDFRONT_DOMAIN
                            + '/media/'
                            + from_url_file_object_url)
-            url_width, url_height = define_scale(url_scale)
+            url_width, url_height = define_scale(url_scale, s3_file_url)
             start_end_valid, URL_message_or_end = validate_start_end_time(s3_file_url, url_start, url_end)
             if start_end_valid is False:
                 errors = {'errors': URL_message_or_end}
@@ -209,8 +211,8 @@ def make_gif(s3_file_url, fps_value, input_width, input_height, input_start, inp
             new='False',
         )
         .filter('fps', fps=fps_value)# fps적용하기
-        .trim(start=input_start, end=valid_end) # 시작시간, 끝나는 시간 정해주
-        .output('{}'.format(out_file_name))
+        .trim(start=input_start, end=valid_end) # 시작시간, 끝나는 시간 정해준다.
+        .output('{}'.format(out_file_name), crf=51, preset='ultrafast') # crf값을 올리고 preset을 ultrafast로 해 변환시간 줄임
         .run()
     )
 
@@ -270,9 +272,11 @@ def make_random_string(length):
 
 
 # 해상도를 결정하는 함수
-def define_scale(input_scale):
+def define_scale(input_scale, input_file_url):
     width = -1
     height = -1
+    file_width = ffmpeg.probe(input_file_url)['streams'][0]['width']
+    file_height = ffmpeg.probe(input_file_url)['streams'][0]['height']
 
     if input_scale == "가로:600px":
         width = 600
@@ -286,6 +290,16 @@ def define_scale(input_scale):
     elif input_scale == "세로:320px":
         width = -2
         height = 320
+    else:
+        if file_width > 600:
+            width = 600
+            height = -2
+            return width, height
+
+        if file_height > 1200:
+            height = 1200
+            width = -2
+            return width, height
 
     return width, height
 
@@ -295,13 +309,15 @@ def validate_start_end_time(input_file_url, input_start, input_end):
     file_url = input_file_url
     duration = ffmpeg.probe(file_url)['format']['duration']
     duration = float(duration)
+    isinput_end_default = math.isclose(input_end, -1.0)
 
-    if input_start > duration or input_end > duration:
+    if isinput_end_default:
+        return True, duration
+
+    elif input_start > duration or input_end > duration:
+        print(input_end)
         error_message = '동영상 전체 길이를 초과 하였습니다'
         return False, error_message
-
-    elif input_end is -1:
-        return True, duration
 
     else:
         return True, input_end
