@@ -37,9 +37,9 @@ def get_secret(setting, secrets=secrets):
 SECRET_KEY = get_secret("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['.compute.amazonaws.com']
 # '.compute.amazonaws.com'
 
 
@@ -47,7 +47,6 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'fileconverter.apps.FileconverterConfig',
-
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -57,6 +56,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'storages',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -67,7 +67,34 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    'corsheaders.middleware.CorsMiddleware',
 ]
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_ALLOW_ALL = True
+
+CORS_ALLOW_METHODS = (
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+)
+
+CORS_ALLOW_HEADERS = (
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+)
+
 
 ROOT_URLCONF = 'config.urls'
 

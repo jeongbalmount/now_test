@@ -8,5 +8,5 @@ class UploadFileAdmin(admin.ModelAdmin):
 
 @admin.register(UploadURLmodel)
 class UploadURLAdmin(admin.ModelAdmin):
-    list_display = ('uploadURL', 'fileFromURL')
+    list_display = ['uploadURL']
 
