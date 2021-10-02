@@ -7,7 +7,7 @@ class MediaStorage(S3Boto3Storage):
     file_overwrite = False
 
     def __init__(self, *args, **kwargs):
-        kwargs['custom_domain'] = settings.AWS_CLOUDFRONT_DOMAIN
+        kwargs['custom_domain'] = settings.AWS_S3_DOMAIN
         super(MediaStorage, self).__init__(*args, **kwargs)
 
 

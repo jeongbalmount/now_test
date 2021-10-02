@@ -13,10 +13,20 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
+from config import settings
+from django.contrib.sitemaps.views import sitemap
+from fileconverter.sitemaps import UploadFileSitemap, UploadURLSitemap
+
+sitemaps = {
+    'fileconverts': UploadFileSitemap,
+    'fileurlconverts': UploadURLSitemap
+}
 
 urlpatterns = [
     path('w3i48ghker84hgk489jg33nbie99wp3hgd/', admin.site.urls),
-    path('', include('fileconverter.urls'))
+    path('', include('fileconverter.urls')),
 ]
+static(settings.STATIC_URL)

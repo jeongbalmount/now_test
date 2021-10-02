@@ -1,6 +1,6 @@
 import json
 import math
-
+import mimetypes
 import ffmpeg
 import random
 import string
@@ -23,24 +23,14 @@ from django.views.generic import TemplateView
 
 from .models import UploadURLmodel, UploadModel
 from .forms import UploadFileForm, UploadURLForm
-from django.views.decorators.csrf import csrf_exempt
+# from django.views.decorators.csrf import csrf_exempt
+
 
 # csrf 쿠키를 위한 데코레이터
-
-
 @method_decorator(ensure_csrf_cookie, name='dispatch')
 class FileConvert(TemplateView):
-    template_name = 'fileconverter/home.html'
+    template_name = 'index.html'
     # 처음 홈페이지 제공
-
-# def giveJson(request):
-    # if request.method == 'POST':
-    #     form = UploadFileForm(request.POST, request.FILES)
-    #     dict_urls = {'data':'postwow'}
-    #     return JsonResponse(data=dict_urls, status=201)
-    # else:
-    #     dict_urls = {'data':'fail!'}
-    #     return JsonResponse(data=dict_urls, status=400)
 
 # url이 아닌 파일 업로드시 사용하는 함수
 def fileUpload(request):
@@ -55,34 +45,50 @@ def fileUpload(request):
                 UploadModel.objects.all().delete()#<----------------------------------------------
                 return JsonResponse(data=error_message, status=400)#<----------------------------------------------
             # form데이터를 db에 저장
+            print("why")
             form_save = form.save()
+
             # 비디오 파일이 1개 들어왔을때
             if len(url_list_or_message) == 1:
                 fps_value_1 = form.cleaned_data['fps_value_1']
                 scale_1 = form.cleaned_data['scaleValue_select_1']
                 start_1 = form.cleaned_data['start_1']
                 end_1 = form.cleaned_data['end_1']
+                use_palette_1 = form.cleaned_data['use_palette_1']
+                # first_url = form.cleaned_data['first_uploaded_file']
                 # 저장한 폼데이터 값 중 비디오 url가져오기
+                print("why")
                 first_url = form_save.first_uploaded_file
                 # file_one_names = first_url.name
                 # s3에 저장된 비디오 url을 불러오기
+                print("why")
                 s3_file_url = ('https://'
-                               + settings.AWS_CLOUDFRONT_DOMAIN
+                               + settings.AWS_S3_DOMAIN
+                               # + settings.AWS_CLOUDFRONT_DOMAIN
                                + '/media/'
                                + first_url.name)
+
+                url_of_mime = mimetypes.guess_type(s3_file_url)
+                if url_of_mime is not 'video/mp4':
+                    changed_to_mp4_video, is_changed_to_mp4 = change_to_mp4(s3_file_url)
+                else:
+                    is_changed_to_mp4 = False
+                    changed_to_mp4_video = s3_file_url
                 # 리스케일값 유효성 검사
-                width_1, height_1 = define_scale(scale_1, s3_file_url)
+                width_1, height_1 = define_scale(scale_1, changed_to_mp4_video)
                 # 시작 시간, 끝나는 시간 유효성 검사
-                start_end_valid, message_or_end, is_default_end = validate_start_end_time(s3_file_url,
+                start_end_valid, message_or_end, is_default_end = validate_start_end_time(changed_to_mp4_video,
                                                                                           start_1, end_1)
+
                 # 틀리면 오류 메시지 리턴
                 if start_end_valid is False:
                     error_message = {'err_message': message_or_end}
                     UploadModel.objects.all().delete()
                     return JsonResponse(data=error_message, status=400)
+
                 # 파일 gif로 바꾸기
-                gif_s3_url = make_gif(s3_file_url, fps_value_1, width_1, height_1, start_1, message_or_end,
-                                      is_default_end)
+                gif_s3_url = make_gif(changed_to_mp4_video, fps_value_1, width_1, height_1, start_1, message_or_end,
+                                      is_default_end, use_palette_1, is_changed_to_mp4)
                 dict_urls = {'url_one': gif_s3_url}
                 # 로컬에 남아 있는 모델 데이터 지우기
                 UploadModel.objects.all().delete()
@@ -97,48 +103,72 @@ def fileUpload(request):
                 end_1 = form.cleaned_data['end_1']
                 start_2 = form.cleaned_data['start_2']
                 end_2 = form.cleaned_data['end_2']
+                use_palette_1 = form.cleaned_data['use_palette_1']
+                use_palette_2 = form.cleaned_data['use_palette_2']
                 # file_one_name = first_url.name
                 # file_two_name = second_url.name
+
                 s3_file_url_first = ('https://'
-                                     + settings.AWS_CLOUDFRONT_DOMAIN
+                                     + settings.AWS_S3_DOMAIN
+                                     # + settings.AWS_CLOUDFRONT_DOMAIN+
                                      + '/media/'
                                      + first_url.name)
                 s3_file_url_second = ('https://'
-                                      + settings.AWS_CLOUDFRONT_DOMAIN
+                                      + settings.AWS_S3_DOMAIN
+                                      # + settings.AWS_CLOUDFRONT_DOMAIN
                                       + '/media/'
                                       + second_url.name)
-                width_1, height_1 = define_scale(scale_1, s3_file_url_first)
-                width_2, height_2 = define_scale(scale_2, s3_file_url_second)
-                start_end_valid_1, message_or_end_1, is_default_end = validate_start_end_time(s3_file_url_first,
+
+                url_of_mime_1 = mimetypes.guess_type(s3_file_url_first)
+                url_of_mime_2 = mimetypes.guess_type(s3_file_url_second)
+
+                if url_of_mime_1 is not 'video/mp4':
+                    changed_to_mp4_video_1, is_changed_to_mp4_1 = change_to_mp4(s3_file_url_first)
+                else:
+                    is_changed_to_mp4_1 = False
+                    changed_to_mp4_video_1 = s3_file_url_first
+
+                if url_of_mime_2 is not 'video/mp4':
+                    changed_to_mp4_video_2, is_changed_to_mp4_2 = change_to_mp4(s3_file_url_second)
+                    print("changed!")
+                else:
+                    is_changed_to_mp4_2 = False
+                    changed_to_mp4_video_2 = s3_file_url_first
+
+                width_1, height_1 = define_scale(scale_1, changed_to_mp4_video_1)
+                width_2, height_2 = define_scale(scale_2, changed_to_mp4_video_2)
+                start_end_valid_1, message_or_end_1, is_default_end = validate_start_end_time(changed_to_mp4_video_1,
                                                                                               start_1, end_1)
-                start_end_valid_2, message_or_end_2, is_default_end = validate_start_end_time(s3_file_url_second,
+                start_end_valid_2, message_or_end_2, is_default_end = validate_start_end_time(changed_to_mp4_video_2,
                                                                                               start_2, end_2)
+
                 if start_end_valid_1 is False or start_end_valid_2 is False:
-                    error_message = {'err_message': '동영상 전체 길이를 초과 하였습니다'}
+                    error_message = {'err_message': 'overTotalLength'}
                     UploadModel.objects.all().delete()
                     return JsonResponse(data=error_message, status=400)
 
-                gif_s3_url_first = make_gif(s3_file_url_first, fps_value_1, width_1, height_1, start_1,
-                                            message_or_end_1, is_default_end)
-                gif_s3_url_second = make_gif(s3_file_url_second, fps_value_2, width_2, height_2, start_2,
-                                             message_or_end_2, is_default_end)
+                gif_s3_url_first = make_gif(changed_to_mp4_video_1, fps_value_1, width_1, height_1, start_1,
+                                            message_or_end_1, is_default_end, use_palette_1, is_changed_to_mp4_1)
+                print("before  change 2")
+                gif_s3_url_second = make_gif(changed_to_mp4_video_2, fps_value_2, width_2, height_2, start_2,
+                                             message_or_end_2, is_default_end, use_palette_2, is_changed_to_mp4_2)
                 dict_urls = {'url_one': gif_s3_url_first, 'url_two': gif_s3_url_second}
+
                 UploadModel.objects.all().delete()
 
-            return JsonResponse(dict_urls, status=201)
+            return JsonResponse(data=dict_urls, status=201)
         else:
-            error_message = {'err_message': '새로 고침 후 다시 이용해 주세요'}
+            error_message = {'err_message': 'Please refresh and use it again'}
             UploadModel.objects.all().delete()
             return JsonResponse(data=error_message, status=400)
-
 
 
 # 비디오 파일 url이 넘어 올때
 def URLupload(request):
     if request.method == 'POST':
         # 비디오파일 url과 설정 데이터가 넘어올때
+        print(json.loads(request.body))
         form = UploadURLForm(json.loads(request.body))
-        print(form.is_valid())
         if form.is_valid():
             valid_url_or_error_message, valid_file_boolean = form.clean_uploadURLs()
             if valid_file_boolean is False:
@@ -146,79 +176,100 @@ def URLupload(request):
                 UploadURLmodel.objects.all().delete()
                 return JsonResponse(data=error_message, status=400)
             if len(valid_url_or_error_message) is 1:
-                file_url = form.cleaned_data['uploadURL']
-                url_scale = form.cleaned_data['URL_scaleValue_select']
-                url_fps = form.cleaned_data['URL_fps_value']
-                url_start = form.cleaned_data['URL_start']
-                url_end = form.cleaned_data['URL_end']
+                file_url = form.cleaned_data['uploadURL_1']
+                url_scale = form.cleaned_data['URL_scaleValue_select_1']
+                url_fps = form.cleaned_data['URL_fps_value_1']
+                url_start = form.cleaned_data['URL_start_1']
+                url_end = form.cleaned_data['URL_end_1']
+                use_palette_1 = form.cleaned_data['use_palette_1']
                 # save()를 통해 나오는 것은 파일 이름!
                 # file_url이 model타입이기 때문에 str형식인 name사용
-                from_url_file_object_url = file_url
-                file_name = basename(from_url_file_object_url)
-                url_width, url_height = define_scale(url_scale, file_url)
-                start_end_valid, URL_message_or_end, is_default_end = validate_start_end_time(file_url,
+
+                url_of_mime = mimetypes.guess_type(file_url)
+                if url_of_mime is not 'video/mp4':
+                    changed_to_mp4_video, is_changed_to_mp4 = change_to_mp4(file_url)
+                else:
+                    is_changed_to_mp4 = False
+                    changed_to_mp4_video = file_url
+
+                url_width, url_height = define_scale(url_scale, changed_to_mp4_video)
+                start_end_valid, URL_message_or_end, is_default_end = validate_start_end_time(changed_to_mp4_video,
                                                                                               url_start, url_end)
                 if start_end_valid is False:
                     error_message = {'err_message': URL_message_or_end}
                     UploadURLmodel.objects.all().delete()
                     return JsonResponse(data=error_message, status=400)
-                gif_s3_url = make_gif(file_url, url_fps, url_width, url_height, url_start, URL_message_or_end,
-                                      is_default_end)
-                dict_url = {'url_one': gif_s3_url, 'file_name': file_name}
+                gif_s3_url = make_gif(changed_to_mp4_video, url_fps, url_width, url_height, url_start, URL_message_or_end,
+                                      is_default_end, use_palette_1, is_changed_to_mp4)
+                dict_url = {'url_one': gif_s3_url}
                 UploadURLmodel.objects.all().delete()
 
                 return JsonResponse(data=dict_url, status=201)
             else:
-                file_url = form.cleaned_data['uploadURL']
+                file_url = form.cleaned_data['uploadURL_1']
                 file_url_2 = form.cleaned_data['uploadURL_2']
-                url_scale = form.cleaned_data['URL_scaleValue_select']
+                url_scale = form.cleaned_data['URL_scaleValue_select_1']
                 url_scale_2 = form.cleaned_data['URL_scaleValue_select_2']
-                url_fps = form.cleaned_data['URL_fps_value']
+                url_fps = form.cleaned_data['URL_fps_value_1']
                 url_fps_2 = form.cleaned_data['URL_fps_value_2']
-                url_start = form.cleaned_data['URL_start']
+                url_start = form.cleaned_data['URL_start_1']
                 url_start_2 = form.cleaned_data['URL_start_2']
-                url_end = form.cleaned_data['URL_end']
+                url_end = form.cleaned_data['URL_end_1']
                 url_end_2 = form.cleaned_data['URL_end_2']
+                use_palette_1 = form.cleaned_data['use_palette_1']
+                use_palette_2 = form.cleaned_data['use_palette_2']
 
-                from_url_file_object_url = file_url
-                from_url_file_object_url_2 = file_url_2
+                url_of_mime_1 = mimetypes.guess_type(file_url)
+                if url_of_mime_1 is not 'video/mp4':
+                    changed_to_mp4_video_1, is_changed_to_mp4_1 = change_to_mp4(file_url)
+                else:
+                    is_changed_to_mp4_1 = False
+                    changed_to_mp4_video_1 = file_url
 
-                file_name = basename(from_url_file_object_url)
-                file_name_2 = basename(from_url_file_object_url_2)
+                url_of_mime_2 = mimetypes.guess_type(file_url_2)
+                if url_of_mime_2 is not 'video/mp4':
+                    changed_to_mp4_video_2, is_changed_to_mp4_2 = change_to_mp4(file_url_2)
+                else:
+                    is_changed_to_mp4_2 = False
+                    changed_to_mp4_video_2 = file_url_2
 
-                url_width, url_height = define_scale(url_scale, file_url)
-                url_width_2, url_height_2 = define_scale(url_scale_2, file_url_2)
+                url_width, url_height = define_scale(url_scale, changed_to_mp4_video_1)
+                url_width_2, url_height_2 = define_scale(url_scale_2, changed_to_mp4_video_2)
 
-                start_end_valid, URL_message_or_end, is_default_end = validate_start_end_time(file_url,
+                start_end_valid, URL_message_or_end, is_default_end = validate_start_end_time(changed_to_mp4_video_1,
                                                                                               url_start, url_end)
-                start_end_valid_2, URL_message_or_end_2, is_default_end = validate_start_end_time(file_url_2,
-                                                                                                  url_start_2, url_end_2)
+                start_end_valid_2, URL_message_or_end_2, is_default_end = validate_start_end_time(changed_to_mp4_video_2,
+                                                                                                  url_start_2,
+                                                                                                  url_end_2)
 
                 if start_end_valid is False or start_end_valid_2 is False:
                     error_message = {'err_message': URL_message_or_end}
                     UploadURLmodel.objects.all().delete()
                     return JsonResponse(data=error_message, status=400)
 
-                gif_s3_url = make_gif(file_url, url_fps, url_width, url_height, url_start, URL_message_or_end,
-                                      is_default_end)
-                gif_s3_url_2 = make_gif(file_url_2, url_fps_2, url_width_2, url_height_2,
-                                        url_start_2, URL_message_or_end_2, is_default_end)
+                gif_s3_url = make_gif(changed_to_mp4_video_1, url_fps, url_width, url_height, url_start,
+                                      URL_message_or_end,
+                                      is_default_end, use_palette_1, is_changed_to_mp4_1)
+                gif_s3_url_2 = make_gif(changed_to_mp4_video_2, url_fps_2, url_width_2, url_height_2,
+                                        url_start_2, URL_message_or_end_2, is_default_end, use_palette_2,
+                                        is_changed_to_mp4_2)
 
-                dict_url = {'url_one': gif_s3_url, 'url_two': gif_s3_url_2,
-                            'file_name': file_name, 'file_name_2': file_name_2}
+                dict_url = {'url_one': gif_s3_url, 'url_two': gif_s3_url_2,}
                 UploadURLmodel.objects.all().delete()
 
                 return JsonResponse(data=dict_url, status=201)
 
-        else:
-            error_message = {'err_message': '새로 고침 후 다시 이용해 주세요'}
-            UploadURLmodel.objects.all().delete()
-            return JsonResponse(data=error_message, status=400)
+    else:
+        error_message = {'err_message': 'Please refresh and use it again'}
+        UploadURLmodel.objects.all().delete()
+        return JsonResponse(data=error_message, status=400)
 
 
-def make_gif(s3_file_url, fps_value, input_width, input_height, input_start, input_end, is_default_end):
+def make_gif(changed_to_mp4_video, fps_value, input_width, input_height, input_start, input_end, is_default_end,
+             use_palette, is_changed_to_mp4):
     # re_thing = re.compile('.+(?<=/)')
     # 파일 이름을 구성하는 난수를 위한 const변수들
+    print("in makegif")
     _LENGTH = 12
     _LENGTH_2 = 15
     _MIDDLELEN = 3
@@ -232,14 +283,14 @@ def make_gif(s3_file_url, fps_value, input_width, input_height, input_start, inp
     random_palette_filename = str(round(random.random() * 100000000000))
 
     # 비디오 파일 리스케일시 파일 확장자에 붙여줄 확장자 뽑는 과정
-    furl, file_extension = splitext(s3_file_url)
+    # furl, file_extension = splitext(s3_file_url)
 
     # 변환 파일이름 구하는 변수
     out_file_name = "GIF-" + \
                     short_random_value + '-' + long_random_value + '.gif'
     # 리스케일된 비디오 파일 이름 변수
-    out_edit_start_end_or_not_file_name = "start_end-" + random_rescale_filename + '{}'.format(file_extension)
-    out_rescale_or_not_file_name = "rescale-" + random_rescale_filename + '{}'.format(file_extension)
+    out_edit_start_end_or_not_file_name = "start_end-" + random_rescale_filename + '.mp4'
+    out_rescale_or_not_file_name = "rescale-" + random_rescale_filename + '.mp4'
     # 팔레트 이름 변수
     out_palette_name = "palette-"+random_palette_filename+'.png'
     # limit_second_per_fps = 300  # fps25-> 12sec fps15 -> 20sec fps10 -> 30sec
@@ -253,52 +304,64 @@ def make_gif(s3_file_url, fps_value, input_width, input_height, input_start, inp
 
     # 시작시간, 끝나는 시간 정해준다.
     if input_start is not 0 or is_default_end is False:
+        print("if input start is not 0")
         (
             ffmpeg
-            .input(s3_file_url)
+            .input(changed_to_mp4_video)
             .trim(start=input_start, end=valid_end)
             .setpts('PTS-STARTPTS')
-            .output(out_edit_start_end_or_not_file_name, format='mp4')
+            .output(out_edit_start_end_or_not_file_name)
             .run(overwrite_output=True)
         )
     else:
-        out_edit_start_end_or_not_file_name = s3_file_url
+        out_edit_start_end_or_not_file_name = changed_to_mp4_video
 
     # 기본 해상도로 설정되어 있지 않으면 리스케일한다.
     if input_width is not -1 or input_height is not -1:
+        print("if it is not default scale")
         (
             ffmpeg
             .input(out_edit_start_end_or_not_file_name)
             .filter('scale', input_width, input_height)
-            .output('{}'.format(out_rescale_or_not_file_name), format='mp4')
+            .output('{}'.format(out_rescale_or_not_file_name))
             .run(overwrite_output=True)
         )
     else:
         out_rescale_or_not_file_name = out_edit_start_end_or_not_file_name
 
-    # 움짤의 선명도를 높이기 위해 palette생성
-    (
-        ffmpeg
-        .input(out_rescale_or_not_file_name)
-        .filter(filter_name='palettegen', stats_mode='full')
-        .output('{}'.format(out_palette_name))
-        .run(overwrite_output=True)
-    )
-    # 비디오 파일을 움짤로 바꿀때 팔레트와 함성하는 작업
-    (
-        ffmpeg.filter(
-            [
-                ffmpeg.input(out_rescale_or_not_file_name, format='mp4'),
-                ffmpeg.input('{}'.format(out_palette_name))
-            ],
-            filter_name='paletteuse',
-            dither='heckbert',
-            new='False',
+    if use_palette is 1:
+        print("make palette")
+        # 움짤의 선명도를 높이기 위해 palette생성
+        (
+            ffmpeg
+            .input(out_rescale_or_not_file_name)
+            .filter(filter_name='palettegen', stats_mode='full')
+            .output('{}'.format(out_palette_name))
+            .run(overwrite_output=True)
         )
-        .filter('fps', fps=fps_value)# fps적용하기
-        .output('{}'.format(out_file_name), crf=51, preset='ultrafast') # crf값을 올리고 preset을 ultrafast로 해 변환시간 줄임
-        .run(overwrite_output=True)
-    )
+        # 비디오 파일을 움짤로 바꿀때 팔레트와 함성하는 작업
+        (
+            ffmpeg.filter(
+                [
+                    ffmpeg.input(out_rescale_or_not_file_name, format='mp4'),
+                    ffmpeg.input('{}'.format(out_palette_name))
+                ],
+                filter_name='paletteuse',
+                dither='heckbert',
+                new='False',
+            )
+            .filter('fps', fps=fps_value)# fps적용하기
+            .output('{}'.format(out_file_name)) # crf값을 올리고 preset을 ultrafast로 해 변환시간 줄임 , crf=51, preset='ultrafast'
+            .run(overwrite_output=True)
+        )
+    else:
+        (
+            ffmpeg
+            .input(out_rescale_or_not_file_name)
+            .filter('fps', fps=fps_value)
+            .output('{}'.format(out_file_name))
+            .run(overwrite_output=True)
+        )
 
     # s3 사용가능하게 만들기
     s3 = boto3.client('s3', config=Config(signature_version='s3v4'), aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
@@ -307,8 +370,12 @@ def make_gif(s3_file_url, fps_value, input_width, input_height, input_start, inp
     with open('{}'.format(out_file_name), "rb") as f:
         s3.upload_fileobj(f, "fileconvertstorage", "gif_file/{out_file_name}".format(out_file_name=out_file_name))
     # 로컬에 남아 있는 파일들 지우기
-    os.remove('{}'.format(out_palette_name))
+    if use_palette is 1:
+        os.remove('{}'.format(out_palette_name))
     os.remove('{}'.format(out_file_name))
+    # mp4로 변환했던 파일 삭제
+    if is_changed_to_mp4 is True:
+        os.remove('{}'.format(changed_to_mp4_video))
     # 너비나 높이 중 하나라도 수정되었다면 리스케일링 된 비디오 파일 지우기
     if input_width is not -1 or input_height is not -1:
         os.remove('{}'.format(out_rescale_or_not_file_name))
@@ -319,12 +386,34 @@ def make_gif(s3_file_url, fps_value, input_width, input_height, input_start, inp
     bucket_name = "fileconvertstorage"
     object_name = "gif_file/{out_file_name}".format(out_file_name=out_file_name)
     # presigned_url 만들기
+    # client = boto3.client('cloudfront')
+    # print(client)
+    # presigned_for_cloud = client.presigned_url(ClientMethod='get_object',
+    #                                      Params={'Bucket': bucket_name,
+    #                                              'Key': object_name},
+    #                                      ExpiresIn=120)
+    # print(presigned_for_cloud)
     presigned_url = create_presigned_url(s3, bucket_name, object_name)
 
     if presigned_url is None:
         return None
 
     return presigned_url
+
+
+def change_to_mp4(will_change_video):
+    random_name = make_random_string(10)
+    changed_file_name = 'changed_file_name' + random_name + '.mp4'
+    print("now change to mp4")
+    (
+        ffmpeg
+        .input(will_change_video)
+        .setpts('PTS-STARTPTS')
+        .output(changed_file_name, format='mp4')
+        .run(overwrite_output=True)
+    )
+    is_changed_to_mp4 = True
+    return changed_file_name, is_changed_to_mp4
 
 
 # 시간이 지나면 사라지는 url을 만드는 함수
@@ -356,6 +445,7 @@ def make_random_string(length):
 def define_scale(input_scale, input_file_url):
     width = -1
     height = -1
+
     file_width = ffmpeg.probe(input_file_url)['streams'][0]['width']
     file_height = ffmpeg.probe(input_file_url)['streams'][0]['height']
 
@@ -398,7 +488,7 @@ def validate_start_end_time(input_file_url, input_start, input_end):
         return True, duration, is_default_end
 
     elif input_start > duration or input_end > duration:
-        error_message = '동영상 전체 길이를 초과 하였습니다'
+        error_message = 'overTotalLength'
         return False, error_message, is_default_end
 
     else:
